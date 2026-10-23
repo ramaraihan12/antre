@@ -17,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias(['tenant' => SetTenant::class]);
 
+        // Midtrans calls this from outside. The signature check replaces the CSRF token.
+        $middleware->validateCsrfTokens(except: ['webhooks/midtrans']);
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

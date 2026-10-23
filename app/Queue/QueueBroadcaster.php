@@ -3,12 +3,14 @@
 namespace App\Queue;
 
 use App\Enums\TicketStatus;
+use App\Events\BookingChanged;
 use App\Events\DisplayUpdated;
 use App\Events\QueueChanged;
 use App\Events\StaffQueueUpdated;
 use App\Models\Branch;
 use App\Models\Counter;
 use App\Models\Ticket;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -61,12 +63,20 @@ class QueueBroadcaster
         DisplayUpdated::dispatch($branchId, $this->snapshots->for($branch), $announcement);
     }
 
+    public function bookingChanged(string $bookingPublicId): void
+    {
+        $this->safely(fn () => BookingChanged::dispatch($bookingPublicId));
+    }
+
+    /** Runs after the surrounding transaction commits, so listeners never read stale rows. */
     private function safely(callable $callback): void
     {
-        try {
-            $callback();
-        } catch (Throwable $e) {
-            Log::warning('Broadcast failed: '.$e->getMessage());
-        }
+        DB::afterCommit(function () use ($callback) {
+            try {
+                $callback();
+            } catch (Throwable $e) {
+                Log::warning('Broadcast failed: '.$e->getMessage());
+            }
+        });
     }
 }
