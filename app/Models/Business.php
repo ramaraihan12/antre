@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\BusinessFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Business extends Model
 {
+    /** @use HasFactory<BusinessFactory> */
     use HasFactory;
 
     protected $guarded = [];

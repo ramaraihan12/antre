@@ -3,13 +3,18 @@
 namespace App\Models;
 
 use App\Tenancy\BelongsToBusiness;
+use Database\Factories\BranchFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
+/**
+ * @property array<int, array{0: string, 1: string}|null> $opening_hours
+ */
 class Branch extends Model
 {
+    /** @use HasFactory<BranchFactory> */
     use BelongsToBusiness, HasFactory;
 
     protected $guarded = [];
@@ -57,8 +62,8 @@ class Branch extends Model
      */
     public function hoursOn(Carbon $localDate): ?array
     {
-        $hours = $this->opening_hours[(string) $localDate->dayOfWeek] ?? null;
+        $hours = $this->opening_hours[$localDate->dayOfWeek] ?? null;
 
-        return is_array($hours) && count($hours) === 2 ? [$hours[0], $hours[1]] : null;
+        return $hours === null ? null : [$hours[0], $hours[1]];
     }
 }

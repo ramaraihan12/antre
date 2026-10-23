@@ -2,6 +2,7 @@
 
 namespace App\Queue;
 
+use App\Enums\TicketStatus;
 use App\Exceptions\QueueException;
 use App\Models\Booking;
 use App\Models\Branch;
@@ -41,7 +42,9 @@ class TicketIssuer
                 'queue_date' => $date,
                 'number' => $number,
                 'code' => Ticket::formatCode($service->code, $number),
+                'status' => TicketStatus::Waiting,
                 'is_priority' => $priority,
+                'call_count' => 0,
             ]);
         });
 

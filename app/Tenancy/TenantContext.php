@@ -22,7 +22,12 @@ final class TenantContext
         $this->businessId = $businessId;
     }
 
-    /** @template T */
+    /**
+     * @template T
+     *
+     * @param  Closure(): T  $callback
+     * @return T
+     */
     public function run(int $businessId, Closure $callback): mixed
     {
         $previous = $this->businessId;

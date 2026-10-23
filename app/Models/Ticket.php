@@ -4,15 +4,25 @@ namespace App\Models;
 
 use App\Enums\TicketStatus;
 use App\Tenancy\BelongsToBusiness;
+use Database\Factories\TicketFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
+/**
+ * @property TicketStatus $status
+ * @property Carbon $queue_date
+ * @property Carbon|null $called_at
+ * @property Carbon|null $done_at
+ * @property bool $is_priority
+ */
 class Ticket extends Model
 {
+    /** @use HasFactory<TicketFactory> */
     use BelongsToBusiness, HasFactory;
 
     protected $guarded = [];

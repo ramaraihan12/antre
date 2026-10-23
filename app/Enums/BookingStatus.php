@@ -10,7 +10,11 @@ enum BookingStatus: string
     case Expired = 'expired';
     case Cancelled = 'cancelled';
 
-    /** Statuses that hold a slot. */
+    /**
+     * Statuses that hold a slot.
+     *
+     * @return list<self>
+     */
     public static function holdingSlot(): array
     {
         return [self::PendingPayment, self::Paid, self::CheckedIn];

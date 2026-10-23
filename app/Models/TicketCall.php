@@ -5,7 +5,11 @@ namespace App\Models;
 use App\Tenancy\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon $created_at
+ */
 class TicketCall extends Model
 {
     use BelongsToBusiness;

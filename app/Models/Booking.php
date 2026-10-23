@@ -4,14 +4,24 @@ namespace App\Models;
 
 use App\Enums\BookingStatus;
 use App\Tenancy\BelongsToBusiness;
+use Database\Factories\BookingFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
+/**
+ * @property BookingStatus $status
+ * @property Carbon $starts_at
+ * @property Carbon $ends_at
+ * @property Carbon $expires_at
+ * @property Carbon|null $paid_at
+ * @property Carbon|null $checked_in_at
+ */
 class Booking extends Model
 {
+    /** @use HasFactory<BookingFactory> */
     use BelongsToBusiness, HasFactory;
 
     protected $guarded = [];
