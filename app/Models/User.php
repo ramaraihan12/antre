@@ -67,6 +67,19 @@ class User extends Authenticatable
         return $this->belongsTo(Branch::class)->withoutGlobalScopes();
     }
 
+    /**
+     * Whether this user may work with rows of the given business and branch.
+     * Staff pinned to a branch (branch_id set) are limited to it, owners see the whole business.
+     */
+    public function worksAt(int $businessId, ?int $branchId = null): bool
+    {
+        if ($this->business_id !== $businessId) {
+            return false;
+        }
+
+        return $this->isOwner() || $this->branch_id === null || $branchId === null || $this->branch_id === $branchId;
+    }
+
     public function isOwner(): bool
     {
         return $this->role === Role::Owner;

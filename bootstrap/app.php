@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias(['tenant' => SetTenant::class]);
+
+        // The tenant must be set before route model binding runs, or bindings would ignore it.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: SetTenant::class);
 
         // Midtrans calls this from outside. The signature check replaces the CSRF token.
         $middleware->validateCsrfTokens(except: ['webhooks/midtrans']);
