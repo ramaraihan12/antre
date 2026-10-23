@@ -85,7 +85,7 @@ export default function BookCreate({ branch, services, days }: Props) {
                     <InputError className="mt-2" message={form.errors.service_id} />
                 </fieldset>
 
-                <fieldset>
+                <fieldset className="min-w-0">
                     <legend className="mb-2 text-sm font-medium">Tanggal</legend>
                     <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
                         {days.map((d) => (
