@@ -1,5 +1,13 @@
 <?php
 
+use App\Enums\Role;
+use App\Models\Branch;
+use App\Models\Business;
+use App\Models\Counter;
+use App\Models\Service;
+use App\Models\Ticket;
+use App\Models\User;
+use App\Queue\TicketIssuer;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -25,7 +33,33 @@ pest()->extend(TestCase::class)
     ->use(DatabaseMigrations::class)
     ->in('Concurrency');
 
-function pgOnly(): bool
+/**
+ * One business with a branch, two services and two counters.
+ * Counter 1 serves A and B, counter 2 serves A only.
+ *
+ * @param  array<string, mixed>  $branch
+ * @return object{business: Business, branch: Branch, a: Service, b: Service, c1: Counter, c2: Counter}
+ */
+function scenario(array $branch = []): object
 {
-    return (bool) getenv('TEST_DATABASE_URL');
+    $business = Business::factory()->create();
+    $branch = Branch::factory()->for($business)->create($branch);
+    $a = Service::factory()->for($branch)->create(['name' => 'Cabut gigi', 'code' => 'A', 'deposit_amount' => 25000]);
+    $b = Service::factory()->for($branch)->create(['name' => 'Konsultasi', 'code' => 'B']);
+    $c1 = Counter::factory()->for($branch)->create(['number' => 1]);
+    $c2 = Counter::factory()->for($branch)->create(['number' => 2]);
+    $c1->services()->attach([$a->id, $b->id]);
+    $c2->services()->attach([$a->id]);
+
+    return (object) compact('business', 'branch', 'a', 'b', 'c1', 'c2');
+}
+
+function issue(Branch $branch, Service $service, bool $priority = false): Ticket
+{
+    return app(TicketIssuer::class)->issue($branch, $service, priority: $priority);
+}
+
+function staffOf(Business $business, Role $role = Role::Staff): User
+{
+    return User::factory()->create(['business_id' => $business->id, 'role' => $role]);
 }
