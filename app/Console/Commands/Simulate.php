@@ -107,8 +107,8 @@ class Simulate extends Command
             ->select('ticket_id')
             ->groupBy('ticket_id')
             ->havingRaw('count(*) > 1')
-            ->get()
-            ->count();
+            ->toBase()
+            ->getCountForPagination();
         $done = Ticket::query()->where('business_id', $business->id)->where('status', TicketStatus::Done)->count();
         $stillWaiting = Ticket::query()->where('business_id', $business->id)->where('status', TicketStatus::Waiting)->count();
 

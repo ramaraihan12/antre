@@ -41,7 +41,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $user ? [...$user->toArray(), 'role' => $user->role?->value] : null,
+                'user' => $user ? [...$user->toArray(), 'role' => $user->role->value] : null,
             ],
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
