@@ -1,20 +1,42 @@
 <?php
 
+use App\Http\Controllers\Pub\BookingController;
+use App\Http\Controllers\Pub\DisplayController;
+use App\Http\Controllers\Pub\HomeController;
+use App\Http\Controllers\Pub\TicketController;
+use App\Http\Controllers\Pub\WalkInController;
 use App\Http\Controllers\Staff\ConsoleController;
 use App\Http\Controllers\Staff\DashboardController;
 use App\Http\Controllers\Staff\QueueActionController;
 use App\Http\Controllers\Webhooks\MidtransController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('welcome');
-})->name('home');
+/*
+ * Public pages. They find rows through a branch slug or an unguessable id and never
+ * through a logged-in user, so no tenant is set here.
+ */
+Route::get('/', HomeController::class)->name('home');
+
+Route::get('q/{branch:slug}', [WalkInController::class, 'show'])->name('queue.join');
+Route::post('q/{branch:slug}/tickets', [WalkInController::class, 'store'])->middleware('throttle:30,1')->name('queue.take');
+Route::get('t/{ticket:public_id}', [TicketController::class, 'show'])->name('ticket.show');
+Route::post('t/{ticket:public_id}/cancel', [TicketController::class, 'cancel'])->name('ticket.cancel');
+Route::get('display/{branch:slug}', DisplayController::class)->name('display');
+
+Route::get('book/{branch:slug}', [BookingController::class, 'create'])->name('booking.create');
+Route::get('book/{branch:slug}/slots', [BookingController::class, 'slots'])->name('booking.slots');
+Route::post('book/{branch:slug}', [BookingController::class, 'store'])->middleware('throttle:20,1')->name('booking.store');
+Route::get('b/{booking:public_id}', [BookingController::class, 'show'])->name('booking.show');
+Route::post('b/{booking:public_id}/pay', [BookingController::class, 'pay'])->middleware('throttle:20,1')->name('booking.pay');
+Route::post('b/{booking:public_id}/fake-pay', [BookingController::class, 'fakePay'])->name('booking.fake-pay');
 
 Route::post('webhooks/midtrans', MidtransController::class)
     ->middleware('throttle:120,1')
     ->name('webhooks.midtrans');
 
+/*
+ * Staff area. The tenant middleware limits every model query to the user's business.
+ */
 Route::middleware(['auth', 'tenant'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
