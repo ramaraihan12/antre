@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Queue\TicketIssuer;
+use Illuminate\Broadcasting\BroadcastManager;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -62,4 +63,25 @@ function issue(Branch $branch, Service $service, bool $priority = false): Ticket
 function staffOf(Business $business, Role $role = Role::Staff): User
 {
     return User::factory()->create(['business_id' => $business->id, 'role' => $role]);
+}
+
+/**
+ * Points broadcasting at Reverb with throwaway keys and registers the channel callbacks on it,
+ * so /broadcasting/auth can be exercised. Nothing connects to a server, only signatures are made.
+ */
+function useReverbBroadcaster(): void
+{
+    config([
+        'broadcasting.default' => 'reverb',
+        'broadcasting.connections.reverb.key' => 'test-key',
+        'broadcasting.connections.reverb.secret' => 'test-secret',
+        'broadcasting.connections.reverb.app_id' => 'test-app',
+        'broadcasting.connections.reverb.options.host' => 'localhost',
+        'broadcasting.connections.reverb.options.port' => 8090,
+        'broadcasting.connections.reverb.options.scheme' => 'http',
+        'broadcasting.connections.reverb.options.useTLS' => false,
+    ]);
+
+    app(BroadcastManager::class)->forgetDrivers();
+    require base_path('routes/channels.php');
 }
