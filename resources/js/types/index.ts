@@ -21,10 +21,15 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface Flash {
+    status: string | null;
+    snap_token: string | null;
+}
+
 export interface SharedData {
     name: string;
-    quote: { message: string; author: string };
     auth: Auth;
+    flash: Flash;
     [key: string]: unknown;
 }
 
@@ -32,6 +37,7 @@ export interface User {
     id: number;
     name: string;
     email: string;
+    role: 'owner' | 'staff' | null;
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;
