@@ -1,6 +1,7 @@
 import InputError from '@/components/input-error';
 import LiveBadge from '@/components/live-badge';
 import { Button } from '@/components/ui/button';
+import { useReloadOnReconnect } from '@/hooks/use-reload-on-reconnect';
 import PublicLayout from '@/layouts/public-layout';
 import { rupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -45,13 +46,17 @@ function loadSnap(url: string, clientKey: string | null): Promise<void> {
     });
 }
 
-function Countdown({ until }: { until: string }) {
+function Countdown({ until, onEnd }: { until: string; onEnd?: () => void }) {
     const [now, setNow] = useState(() => Date.now());
     useEffect(() => {
         const id = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(id);
     }, []);
     const left = Math.max(0, Math.floor((new Date(until).getTime() - now) / 1000));
+    useEffect(() => {
+        if (left === 0) onEnd?.();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [left === 0]);
     return (
         <span className="tabular-nums" data-testid="countdown">
             {Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}
@@ -71,6 +76,7 @@ export default function BookShow({ booking, payment }: Props) {
     const { flash, errors } = usePage<SharedData & { errors: Record<string, string> }>().props;
     const [busy, setBusy] = useState(false);
 
+    useReloadOnReconnect(['booking']);
     useEchoPublic(`booking.${booking.public_id}`, '.booking.changed', () => router.reload(), [booking.public_id]);
 
     // The server answers "pay" with a Snap token in the flash data; open the Snap popup with it.
@@ -123,7 +129,8 @@ export default function BookShow({ booking, payment }: Props) {
                 {pending && (
                     <div className="mt-6 space-y-3">
                         <p className="text-sm">
-                            Slot ditahan sampai <Countdown until={booking.expires_at} />. Setelah itu dilepas dan Anda perlu memesan ulang.
+                            Slot ditahan sampai <Countdown until={booking.expires_at} onEnd={() => window.setTimeout(() => router.reload(), 1500)} />.
+                            Setelah itu dilepas dan Anda perlu memesan ulang.
                         </p>
 
                         {payment.driver === 'midtrans' && (

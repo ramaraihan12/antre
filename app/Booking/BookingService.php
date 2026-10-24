@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Branch;
 use App\Models\Service;
 use App\Models\Ticket;
+use App\Queue\QueueBroadcaster;
 use App\Queue\TicketIssuer;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ class BookingService
     public function __construct(
         private readonly SlotCalculator $slots,
         private readonly TicketIssuer $tickets,
+        private readonly QueueBroadcaster $broadcaster,
     ) {}
 
     /**
@@ -60,10 +62,26 @@ class BookingService
      */
     public function expireDue(): int
     {
-        return Booking::query()
+        $due = Booking::query()
             ->where('status', BookingStatus::PendingPayment)
             ->where('expires_at', '<=', now()->format('Y-m-d H:i:s'))
+            ->pluck('public_id', 'id');
+
+        if ($due->isEmpty()) {
+            return 0;
+        }
+
+        $expired = Booking::query()
+            ->whereIn('id', $due->keys())
+            ->where('status', BookingStatus::PendingPayment)
             ->update(['status' => BookingStatus::Expired, 'updated_at' => now()]);
+
+        // Tell any open booking page, so it stops showing a 0:00 countdown.
+        foreach ($due as $publicId) {
+            $this->broadcaster->bookingChanged($publicId);
+        }
+
+        return $expired;
     }
 
     /**

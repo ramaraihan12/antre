@@ -48,6 +48,7 @@ class BookingController extends Controller
                     'deposit' => $s->deposit_amount,
                 ]),
             'days' => $days,
+            'hold_minutes' => (int) config('antre.booking_hold_minutes'),
         ]);
     }
 

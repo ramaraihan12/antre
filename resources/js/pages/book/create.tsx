@@ -13,11 +13,14 @@ interface Props {
     branch: { name: string; slug: string; city: string | null };
     services: { id: number; name: string; minutes: number; deposit: number }[];
     days: { date: string; weekday: string; day: string; month: string }[];
+    hold_minutes: number;
 }
 
-export default function BookCreate({ branch, services, days }: Props) {
+export default function BookCreate({ branch, services, days, hold_minutes }: Props) {
     const form = useForm({ service_id: services[0]?.id ?? 0, date: days[0]?.date ?? '', time: '', name: '', phone: '' });
     const [slots, setSlots] = useState<Slot[] | null>(null);
+    const [loadFailed, setLoadFailed] = useState(false);
+    const [attempt, setAttempt] = useState(0);
 
     const { service_id, date } = form.data;
     const { setData } = form;
@@ -26,18 +29,24 @@ export default function BookCreate({ branch, services, days }: Props) {
         if (!service_id || !date) return;
         const controller = new AbortController();
         setSlots(null);
+        setLoadFailed(false);
         fetch(`/book/${branch.slug}/slots?service_id=${service_id}&date=${date}`, {
             headers: { Accept: 'application/json' },
             signal: controller.signal,
         })
-            .then((response) => response.json())
+            .then((response) => {
+                if (!response.ok) throw new Error('slots');
+                return response.json();
+            })
             .then((body: { slots: Slot[] }) => {
                 setSlots(body.slots);
                 setData('time', '');
             })
-            .catch(() => undefined);
+            .catch((error: unknown) => {
+                if (!(error instanceof DOMException && error.name === 'AbortError')) setLoadFailed(true);
+            });
         return () => controller.abort();
-    }, [branch.slug, service_id, date, setData]);
+    }, [branch.slug, service_id, date, setData, attempt]);
 
     const service = services.find((s) => s.id === service_id);
 
@@ -45,7 +54,7 @@ export default function BookCreate({ branch, services, days }: Props) {
         <PublicLayout branch={branch.name}>
             <Head title={`Booking - ${branch.name}`} />
             <h1 className="text-2xl font-semibold tracking-tight">Booking dengan deposit</h1>
-            <p className="text-muted-foreground mt-1 text-sm">Pilih layanan dan jam. Slot ditahan 15 menit sampai deposit dibayar.</p>
+            <p className="text-muted-foreground mt-1 text-sm">Pilih layanan dan jam. Slot ditahan {hold_minutes} menit sampai deposit dibayar.</p>
 
             <form
                 className="mt-6 space-y-6"
@@ -110,7 +119,15 @@ export default function BookCreate({ branch, services, days }: Props) {
 
                 <fieldset>
                     <legend className="mb-2 text-sm font-medium">Jam</legend>
-                    {slots === null && <p className="text-muted-foreground text-sm">Memuat jam...</p>}
+                    {slots === null && !loadFailed && <p className="text-muted-foreground text-sm">Memuat jam...</p>}
+                    {slots === null && loadFailed && (
+                        <p className="text-destructive text-sm">
+                            Jam tidak bisa dimuat.{' '}
+                            <button type="button" className="underline" onClick={() => setAttempt((n) => n + 1)}>
+                                Coba lagi
+                            </button>
+                        </p>
+                    )}
                     {slots !== null && slots.length === 0 && <p className="text-muted-foreground text-sm">Tidak ada jam tersedia di tanggal ini.</p>}
                     {slots !== null && slots.length > 0 && (
                         <div className="grid grid-cols-4 gap-2 sm:grid-cols-5" data-testid="slots">
