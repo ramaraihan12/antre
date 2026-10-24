@@ -69,7 +69,7 @@ php artisan schedule:work        # expires unpaid bookings
 npm run dev                      # vite on 5180
 ```
 
-Open `http://localhost:8010`. Walk-in page: `/q/senyum-salatiga-kota`, TV: `/display/senyum-salatiga-kota`, booking: `/book/senyum-salatiga-kota`. Staff log in at `/login` with `dimas@senyum.test` and the owner with `owner@senyum.test`. Every demo account uses the password `password`. For a dashboard with history, run `php artisan db:seed --class=DemoDaySeeder`.
+Open `http://localhost:8010`. Walk-in page: `/q/senyum-salatiga-kota`, TV: `/display/senyum-salatiga-kota`, booking: `/book/senyum-salatiga-kota`. Staff log in at `/login` with `dimas@senyum.test` and the owner with `owner@senyum.test`. Every demo account uses the password `password`. For a dashboard with history, run `php artisan db:seed --class=DemoDaySeeder`. Add `DEMO_UNTIL=13:30` to seed as if it were that time, which is how I took the dashboard shot in the morning.
 
 Or everything in Docker (app, Reverb, queue worker, scheduler and Postgres, all ports on `127.0.0.1`):
 
@@ -99,9 +99,9 @@ vendor/bin/pest
 npm run build && npx playwright test   # browser tests, wipes antre_test
 ```
 
-The Pest suite covers the queue state machine, slot capacity, booking expiry and check-in, the webhook (bad signature, duplicates, out-of-order, late payments), tenant isolation through route model binding, policies and broadcast channel authorization, and the dashboard numbers. The concurrency tests need Postgres and are skipped without `TEST_DATABASE_URL`. Midtrans is never called: the Snap client is faked, and webhook tests sign their own payloads. My last run was 179 tests, 627 assertions, in 19 seconds. The two Playwright tests start a real app server and a real Reverb server: staff clicks Call next and the display and the ticket page show the number without a reload, and a customer books a slot and pays with the fake driver.
+The Pest suite covers the queue state machine, slot capacity, booking expiry and check-in, the webhook (bad signature, duplicates, out-of-order, late payments), tenant isolation through route model binding, policies and broadcast channel authorization, and the dashboard numbers. The concurrency tests need Postgres and are skipped without `TEST_DATABASE_URL`. Midtrans is never called: the Snap client is faked, and webhook tests sign their own payloads. My last run was 180 tests, 638 assertions, in 16 seconds. The two Playwright tests start a real app server and a real Reverb server: staff clicks Call next and the display and the ticket page show the number without a reload, and a customer books a slot and pays with the fake driver.
 
-CI runs Pint, Larastan, ESLint, Prettier and `tsc` in one job, Pest against a Postgres 17 service in a second, and the Vite build in a third. The browser tests do not run in CI.
+CI runs Pint, Larastan, ESLint, Prettier and `tsc` in one job, Pest against a Postgres 17 service in a second, and the Vite build in a third. A fourth job builds the assets, starts the app and Reverb against a Postgres service and runs the two Playwright tests in headless Chromium.
 
 ## Notes
 
