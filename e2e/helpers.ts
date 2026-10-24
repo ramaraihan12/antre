@@ -5,9 +5,9 @@ export const BRANCH = 'senyum-salatiga-kota';
 /** Signs in with one of the seeded demo accounts (password is always "password"). */
 export async function login(page: Page, email: string) {
     await page.goto('/login');
-    await page.getByLabel('Email address').fill(email);
-    await page.getByLabel('Password').fill('password');
-    await page.getByRole('button', { name: 'Log in' }).click();
+    await page.getByLabel('Email', { exact: true }).fill(email);
+    await page.getByLabel('Kata sandi').fill('password');
+    await page.getByRole('button', { name: 'Masuk' }).click();
     await page.waitForURL(/\/(console|dashboard)/);
 }
 
