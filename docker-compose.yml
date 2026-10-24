@@ -15,6 +15,7 @@ x-app: &app
     - path: .env
       required: false
   environment: &app-env
+    APP_KEY: ${APP_KEY:?APP_KEY is empty, see "Run it" in the README}
     APP_ENV: ${APP_ENV:-local}
     APP_DEBUG: "false"
     APP_URL: http://localhost:8010
@@ -32,7 +33,7 @@ x-app: &app
     REVERB_SCHEME: http
     REVERB_APP_ID: ${REVERB_APP_ID:-antre-local}
     REVERB_APP_KEY: ${REVERB_APP_KEY:-antre-local-key}
-    REVERB_APP_SECRET: ${REVERB_APP_SECRET:-antre-local-secret}
+    REVERB_APP_SECRET: ${REVERB_APP_SECRET:?REVERB_APP_SECRET is empty, see "Run it" in the README}
   depends_on:
     db:
       condition: service_healthy
@@ -46,8 +47,9 @@ services:
       <<: *app-env
       RUN_MIGRATIONS: "true"
     # Healthy only after the entrypoint has migrated, so the other services do not start on an empty schema.
+    # /login boots the session and needs APP_KEY, so a missing key shows up as unhealthy.
     healthcheck:
-      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/up') === false ? 1 : 0);"]
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/login') === false ? 1 : 0);"]
       interval: 5s
       timeout: 5s
       retries: 20
