@@ -17,6 +17,7 @@ use Illuminate\Support\Collection;
  * numbers to show. The times follow the branch opening hours, not the clock, so running it
  * early in the morning still gives the same shape (some timestamps are then in the future).
  * Run it with: php artisan db:seed --class=DemoDaySeeder
+ * Set DEMO_UNTIL=13:30 (branch local time) to seed as if it were that time, so a morning run still fills several hours.
  */
 class DemoDaySeeder extends Seeder
 {
@@ -45,9 +46,11 @@ class DemoDaySeeder extends Seeder
         $numbers = [];
         $counterFree = $counters->mapWithKeys(fn (Counter $c) => [$c->id => $open->copy()])->all();
 
-        // Nothing is seeded in the future: when it is mid-day, the day so far is spread over the hours that have passed.
+        // Nothing is seeded after "now": when it is mid-day, the day so far is spread over the hours that have passed.
         $close = Carbon::parse($branch->today().' '.$hours[1], $branch->timezone)->utc();
-        $end = now()->subMinutes(2)->min($close);
+        $until = env('DEMO_UNTIL');
+        $now = $until ? Carbon::parse($branch->today().' '.$until, $branch->timezone)->utc() : now();
+        $end = $now->copy()->subMinutes(2)->min($close);
         if ($end->lte($open->copy()->addMinutes(30))) {
             $end = $close;
         }
@@ -62,7 +65,7 @@ class DemoDaySeeder extends Seeder
             $calledAt = $arrival->copy()->max($counterFree[$counterId])->addSeconds(mt_rand(5, 40));
             $serviceMinutes = max(4, $service->avg_duration_minutes * (mt_rand(65, 135) / 100));
             $noShow = mt_rand(1, 100) <= 8;
-            $isLast = $index >= $total - 3 || $calledAt->isFuture();
+            $isLast = $index >= $total - 3 || $calledAt->greaterThan($now);
 
             $attributes = [
                 'business_id' => $branch->business_id,
