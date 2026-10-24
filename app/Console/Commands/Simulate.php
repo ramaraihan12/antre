@@ -87,6 +87,11 @@ class Simulate extends Command
 
                     continue;
                 }
+                if (preg_match('/^\d+ [\d.]+$/', $line) !== 1) {
+                    $this->warn("counter $counterId printed an unexpected line: $line");
+
+                    continue;
+                }
                 [$ticketId, $ms] = explode(' ', $line);
                 $latencies[] = (float) $ms;
                 $called[] = (int) $ticketId;
