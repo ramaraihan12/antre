@@ -45,9 +45,18 @@ services:
     environment:
       <<: *app-env
       RUN_MIGRATIONS: "true"
+    # Healthy only after the entrypoint has migrated, so the other services do not start on an empty schema.
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/up') === false ? 1 : 0);"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   reverb:
     <<: *app
+    depends_on:
+      app:
+        condition: service_healthy
     command: ["su", "-s", "/bin/sh", "www-data", "-c", "php artisan reverb:start --host=0.0.0.0 --port=8090"]
     environment:
       <<: *app-env
@@ -58,10 +67,16 @@ services:
 
   queue:
     <<: *app
+    depends_on:
+      app:
+        condition: service_healthy
     command: ["su", "-s", "/bin/sh", "www-data", "-c", "php artisan queue:work --tries=3"]
 
   scheduler:
     <<: *app
+    depends_on:
+      app:
+        condition: service_healthy
     command: ["su", "-s", "/bin/sh", "www-data", "-c", "php artisan schedule:work"]
 
   db:
