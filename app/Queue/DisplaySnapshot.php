@@ -14,12 +14,13 @@ class DisplaySnapshot
     public const RECENT = 5;
 
     /**
-     * @return array{counters: list<array{number: int, label: string, code: string|null}>, recent: list<array{code: string, counter: string, kind: string}>}
+     * @return array{counters: list<array{number: int, label: string, code: string|null}>, recent: list<array{code: string, counter: string, kind: string}>, version: int}
      */
     public function for(Branch $branch): array
     {
         $active = Ticket::query()
             ->where('branch_id', $branch->id)
+            ->whereDate('queue_date', $branch->today())
             ->where('status', TicketStatus::Called)
             ->get()
             ->keyBy('counter_id');
@@ -50,6 +51,6 @@ class DisplaySnapshot
             ->values()
             ->all();
 
-        return ['counters' => $counters, 'recent' => $recent];
+        return ['counters' => $counters, 'recent' => $recent, 'version' => (int) floor(microtime(true) * 1000)];
     }
 }

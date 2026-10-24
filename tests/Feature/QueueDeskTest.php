@@ -132,3 +132,13 @@ it('lets a customer cancel only while waiting', function () {
     $called = $this->desk->callNext($s->c1);
     $this->desk->cancel($called);
 })->throws(QueueException::class);
+
+it('does not let a ticket left called on an earlier day block the counter', function () {
+    $s = scenario();
+    $old = issue($s->branch, $s->a);
+    $this->desk->callNext($s->c1);
+    $old->refresh()->update(['queue_date' => now($s->branch->timezone)->subDay()->toDateString()]);
+    $fresh = issue($s->branch, $s->a);
+
+    expect($this->desk->callNext($s->c1)->is($fresh))->toBeTrue();
+});

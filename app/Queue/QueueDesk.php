@@ -29,13 +29,19 @@ class QueueDesk
             // Serialises repeated clicks from the same counter.
             Counter::query()->whereKey($counter->id)->lockForUpdate()->firstOrFail();
 
-            $current = Ticket::query()->where('counter_id', $counter->id)->where('status', TicketStatus::Called)->first();
+            $branch = $counter->branch;
+
+            // A ticket left called on an earlier day does not block the counter today.
+            $current = Ticket::query()
+                ->where('counter_id', $counter->id)
+                ->whereDate('queue_date', $branch->today())
+                ->where('status', TicketStatus::Called)
+                ->first();
             if ($current !== null) {
                 throw QueueException::counterBusy($current->code);
             }
 
             $serviceIds = $counter->services()->pluck('services.id');
-            $branch = $counter->branch;
 
             $next = Ticket::query()
                 ->where('branch_id', $counter->branch_id)
