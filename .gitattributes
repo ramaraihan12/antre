@@ -4,6 +4,7 @@
 *.css diff=css
 *.html diff=html
 *.md diff=markdown
+*.png binary
 *.php diff=php
 
 CHANGELOG.md export-ignore
