@@ -45,7 +45,14 @@ class DemoDaySeeder extends Seeder
         $numbers = [];
         $counterFree = $counters->mapWithKeys(fn (Counter $c) => [$c->id => $open->copy()])->all();
 
-        $arrivals = $this->arrivalTimes($open, $total);
+        // Nothing is seeded in the future: when it is mid-day, the day so far is spread over the hours that have passed.
+        $close = Carbon::parse($branch->today().' '.$hours[1], $branch->timezone)->utc();
+        $end = now()->subMinutes(2)->min($close);
+        if ($end->lte($open->copy()->addMinutes(30))) {
+            $end = $close;
+        }
+
+        $arrivals = $this->arrivalTimes($open, $end, $total);
 
         foreach ($arrivals as $index => $arrival) {
             $service = $services->random();
@@ -55,7 +62,7 @@ class DemoDaySeeder extends Seeder
             $calledAt = $arrival->copy()->max($counterFree[$counterId])->addSeconds(mt_rand(5, 40));
             $serviceMinutes = max(4, $service->avg_duration_minutes * (mt_rand(65, 135) / 100));
             $noShow = mt_rand(1, 100) <= 8;
-            $isLast = $index >= $total - 3;
+            $isLast = $index >= $total - 3 || $calledAt->isFuture();
 
             $attributes = [
                 'business_id' => $branch->business_id,
@@ -98,15 +105,18 @@ class DemoDaySeeder extends Seeder
     }
 
     /** @return Collection<int, Carbon> */
-    private function arrivalTimes(Carbon $open, int $count): Collection
+    private function arrivalTimes(Carbon $open, Carbon $end, int $count): Collection
     {
         $slots = [];
         foreach (self::HOURS as $hour => $weight) {
             $slots = [...$slots, ...array_fill(0, $weight, $hour)];
         }
 
+        $seconds = $open->diffInSeconds($end);
+        $buckets = count(self::HOURS);
+
         return collect(range(1, $count))
-            ->map(fn () => $open->copy()->addHours($slots[array_rand($slots)])->addMinutes(mt_rand(0, 59))->addSeconds(mt_rand(0, 59)))
+            ->map(fn () => $open->copy()->addSeconds((int) floor(($slots[array_rand($slots)] + mt_rand(0, 999) / 1000) / $buckets * $seconds)))
             ->sort()
             ->values();
     }
