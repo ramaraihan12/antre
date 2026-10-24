@@ -48,7 +48,7 @@ class DemoDaySeeder extends Seeder
 
         // Nothing is seeded after "now": when it is mid-day, the day so far is spread over the hours that have passed.
         $close = Carbon::parse($branch->today().' '.$hours[1], $branch->timezone)->utc();
-        $until = env('DEMO_UNTIL');
+        $until = getenv('DEMO_UNTIL');
         $now = $until ? Carbon::parse($branch->today().' '.$until, $branch->timezone)->utc() : now();
         $end = $now->copy()->subMinutes(2)->min($close);
         if ($end->lte($open->copy()->addMinutes(30))) {
