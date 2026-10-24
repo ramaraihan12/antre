@@ -1,4 +1,5 @@
 import LiveBadge from '@/components/live-badge';
+import { useReloadOnReconnect } from '@/hooks/use-reload-on-reconnect';
 import { announce, unlockAudio } from '@/lib/announce';
 import { cn } from '@/lib/utils';
 import { type Announcement, type BranchRef, type DisplaySnapshot } from '@/types/antre';
@@ -23,6 +24,7 @@ function Clock() {
 
 export default function Display({ branch, snapshot: initial }: Props) {
     const [snapshot, setSnapshot] = useState(initial);
+    const apply = (next: DisplaySnapshot) => setSnapshot((current) => (next.version >= current.version ? next : current));
     const [soundOn, setSoundOn] = useState(false);
     const [highlight, setHighlight] = useState<string | null>(null);
 
@@ -35,7 +37,7 @@ export default function Display({ branch, snapshot: initial }: Props) {
         `display.${branch.id}`,
         '.display.updated',
         (payload) => {
-            setSnapshot(payload.snapshot);
+            apply(payload.snapshot);
 
             const call = payload.announcement;
             if (call && call.id !== seen.current) {
@@ -48,6 +50,10 @@ export default function Display({ branch, snapshot: initial }: Props) {
         },
         [branch.id],
     );
+
+    // After a websocket reconnect the server's snapshot arrives as a prop. Take it if it is newer.
+    useEffect(() => apply(initial), [initial]);
+    useReloadOnReconnect(['snapshot']);
 
     const enableSound = () => {
         const ok = unlockAudio();

@@ -1,5 +1,6 @@
 import LiveBadge from '@/components/live-badge';
 import { Button } from '@/components/ui/button';
+import { useReloadOnReconnect } from '@/hooks/use-reload-on-reconnect';
 import PublicLayout from '@/layouts/public-layout';
 import { waitText } from '@/lib/format';
 import { type BranchRef, type Estimate, type TicketStatus } from '@/types/antre';
@@ -20,6 +21,7 @@ const closed: Record<string, string> = {
 };
 
 export default function TicketPage({ ticket, estimate, branch }: Props) {
+    useReloadOnReconnect(['ticket', 'estimate']);
     // Someone else's ticket changing is a nudge to ask the server for this one's new position.
     useEchoPublic(`queue.${branch.id}`, '.queue.changed', () => router.reload({ only: ['ticket', 'estimate'] }), [branch.id]);
 

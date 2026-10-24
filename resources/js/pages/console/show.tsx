@@ -2,6 +2,7 @@ import InputError from '@/components/input-error';
 import LiveBadge from '@/components/live-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useReloadOnReconnect } from '@/hooks/use-reload-on-reconnect';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -56,6 +57,8 @@ export default function ConsoleShow({ counter, branch, services, current, waitin
         },
         [branch.id],
     );
+
+    useReloadOnReconnect(['current', 'waiting', 'waiting_count', 'served_today', 'bookings']);
 
     const act = (url: string) => {
         setBusy(true);

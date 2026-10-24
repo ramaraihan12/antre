@@ -21,6 +21,8 @@ export interface DisplayCall {
 export interface DisplaySnapshot {
     counters: DisplayCounter[];
     recent: DisplayCall[];
+    /** Milliseconds when the server built it. Older snapshots that arrive late are ignored. */
+    version: number;
 }
 
 export interface Announcement {
