@@ -25,14 +25,12 @@ class QueueBroadcaster
 
     public function ticketCalled(Ticket $ticket, Counter $counter, bool $recall): void
     {
-        $announcement = [
-            'id' => (string) Str::ulid(),
-            'code' => $ticket->code,
-            'text' => Announcement::forCall($ticket->service->code, $ticket->number, $counter->number),
-        ];
-
-        $this->safely(function () use ($ticket, $announcement) {
-            $this->broadcastDisplay($ticket->branch_id, $announcement);
+        $this->safely(function () use ($ticket, $counter) {
+            $this->broadcastDisplay($ticket->branch_id, [
+                'id' => (string) Str::ulid(),
+                'code' => $ticket->code,
+                'text' => Announcement::forCall($ticket->service->code, $ticket->number, $counter->number),
+            ]);
         });
 
         $verb = $recall ? 'dipanggil ulang' : 'dipanggil';

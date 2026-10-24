@@ -22,6 +22,15 @@ it('spells numbers in Indonesian', function (int $n, string $words) {
     [999, 'sembilan ratus sembilan puluh sembilan'],
 ]);
 
-it('refuses numbers it cannot spell', function () {
-    Announcement::words(1000);
-})->throws(InvalidArgumentException::class);
+it('spells thousands', function (int $n, string $words) {
+    expect(Announcement::words($n))->toBe($words);
+})->with([
+    [1000, 'seribu'],
+    [1018, 'seribu delapan belas'],
+    [2500, 'dua ribu lima ratus'],
+    [9999, 'sembilan ribu sembilan ratus sembilan puluh sembilan'],
+]);
+
+it('reads digit by digit beyond 9999 instead of failing', function () {
+    expect(Announcement::words(12345))->toBe('satu dua tiga empat lima');
+});
