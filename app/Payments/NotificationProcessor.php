@@ -6,6 +6,7 @@ use App\Booking\SlotCalculator;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\PaymentNotification;
+use App\Models\Service;
 use App\Queue\QueueBroadcaster;
 use Illuminate\Support\Facades\DB;
 
@@ -140,6 +141,12 @@ class NotificationProcessor
     {
         switch ($booking->status) {
             case BookingStatus::PendingPayment:
+                // The hold may have run out before the once-a-minute sweep got to it. The slot
+                // could be taken by someone else by now, so treat it like an expired booking.
+                if ($booking->expires_at->lte(now())) {
+                    return $this->payLate($booking);
+                }
+
                 $booking->update(['status' => BookingStatus::Paid, 'paid_at' => now()]);
 
                 return 'applied';
@@ -149,22 +156,37 @@ class NotificationProcessor
                 return 'ignored_already_paid';
 
             case BookingStatus::Expired:
-                // The customer paid after our hold ran out. Honour it if the slot is still free
-                // and still in the future, otherwise leave it expired for a manual refund.
-                $stillFree = $booking->starts_at->isFuture()
-                    && $this->slots->hasRoom($booking->service, $booking->starts_at, $booking->id);
-
-                if (! $stillFree) {
-                    return 'late_payment_no_capacity';
-                }
-
-                $booking->update(['status' => BookingStatus::Paid, 'paid_at' => now()]);
-
-                return 'late_payment_applied';
+                return $this->payLate($booking);
 
             case BookingStatus::Cancelled:
                 return 'ignored_cancelled';
         }
+    }
+
+    /**
+     * The customer paid after our hold ran out. Honour it if the slot still has room and is
+     * still in the future, otherwise leave it expired for a manual refund.
+     */
+    private function payLate(Booking $booking): string
+    {
+        // Same lock as BookingService::create, so a new booking cannot take the last place
+        // between the capacity check and the update.
+        Service::query()->whereKey($booking->service_id)->lockForUpdate()->firstOrFail();
+
+        $stillFree = $booking->starts_at->isFuture()
+            && $this->slots->hasRoom($booking->service, $booking->starts_at, $booking->id);
+
+        if (! $stillFree) {
+            if ($booking->status === BookingStatus::PendingPayment) {
+                $booking->update(['status' => BookingStatus::Expired]);
+            }
+
+            return 'late_payment_no_capacity';
+        }
+
+        $booking->update(['status' => BookingStatus::Paid, 'paid_at' => now()]);
+
+        return 'late_payment_applied';
     }
 
     /** Failure and expiry notifications only matter while the booking is still unpaid. */

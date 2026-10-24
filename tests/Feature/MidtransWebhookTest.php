@@ -216,3 +216,29 @@ it('refuses the fake driver in production', function () {
 
     expect(fn () => app(FakePayment::class)->send($this->booking))->toThrow(RuntimeException::class);
 });
+
+it('treats a payment after the hold ran out, before the sweep, like an expired booking', function () {
+    Carbon::setTestNow('2026-06-15 01:20:00');
+    expect($this->booking->fresh()->status)->toBe(BookingStatus::PendingPayment);
+
+    Booking::factory()->count(2)->create([
+        'service_id' => $this->s->a->id,
+        'starts_at' => '2026-06-15 03:00:00',
+        'ends_at' => '2026-06-15 03:15:00',
+        'status' => BookingStatus::Paid,
+    ]);
+
+    $this->postJson('/webhooks/midtrans', notification($this->booking))
+        ->assertJson(['outcome' => 'late_payment_no_capacity']);
+
+    expect($this->booking->fresh()->status)->toBe(BookingStatus::Expired);
+});
+
+it('still accepts a payment after the hold ran out when the slot has room', function () {
+    Carbon::setTestNow('2026-06-15 01:20:00');
+
+    $this->postJson('/webhooks/midtrans', notification($this->booking))
+        ->assertJson(['outcome' => 'late_payment_applied']);
+
+    expect($this->booking->fresh()->status)->toBe(BookingStatus::Paid);
+});
