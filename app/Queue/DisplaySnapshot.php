@@ -39,6 +39,7 @@ class DisplaySnapshot
 
         $recent = TicketCall::query()
             ->where('branch_id', $branch->id)
+            ->whereHas('ticket', fn ($query) => $query->whereDate('queue_date', $branch->today()))
             ->with(['ticket', 'counter'])
             ->orderByDesc('id')
             ->limit(self::RECENT)

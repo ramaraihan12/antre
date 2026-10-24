@@ -163,3 +163,13 @@ it('renders the display with one entry per counter and the last five calls', fun
             ->where('snapshot.recent.0.code', 'A-007')
             ->where('snapshot.recent.4.code', 'A-003'));
 });
+
+it('does not list calls from an earlier day on the display', function () {
+    issue($this->s->branch, $this->s->a);
+    $ticket = app(QueueDesk::class)->callNext($this->s->c1);
+    $ticket->forceFill(['queue_date' => $this->s->branch->now()->subDay()->toDateString()])->save();
+
+    $this->get("/display/{$this->s->branch->slug}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('snapshot.recent', 0));
+});
