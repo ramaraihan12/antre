@@ -8,7 +8,7 @@ use RuntimeException;
  * Decides which payment driver is active and which key signs its notifications.
  *
  * The fake driver exists so the demo can be finished without Midtrans keys. It is
- * refused outright in production.
+ * refused in production, unless that production is the public demo.
  */
 class Payments
 {
@@ -21,7 +21,7 @@ class Payments
         $driver = config('antre.payments.driver')
             ?: (config('antre.payments.midtrans.server_key') ? self::MIDTRANS : self::FAKE);
 
-        if ($driver === self::FAKE && app()->isProduction()) {
+        if ($driver === self::FAKE && ! $this->fakeAllowed()) {
             throw new RuntimeException('The fake payment driver is disabled in production. Set MIDTRANS_SERVER_KEY.');
         }
 
@@ -30,6 +30,11 @@ class Payments
         }
 
         return $driver;
+    }
+
+    public function fakeAllowed(): bool
+    {
+        return ! app()->isProduction() || config('antre.demo.enabled');
     }
 
     public function isFake(): bool

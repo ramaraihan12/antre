@@ -37,7 +37,10 @@ class DemoDaySeeder extends Seeder
     {
         $services = Service::withoutGlobalScopes()->where('branch_id', $branch->id)->get();
         $counters = Counter::withoutGlobalScopes()->where('branch_id', $branch->id)->orderBy('number')->get();
-        $hours = $branch->hoursOn($branch->now()) ?? $branch->opening_hours[1] ?? ['09:00', '17:00'];
+        // The public demo never closes, but its seeded day should still look like a working day.
+        $hours = config('antre.demo.enabled')
+            ? ['08:00', '20:00']
+            : ($branch->hoursOn($branch->now()) ?? $branch->opening_hours[1] ?? ['09:00', '17:00']);
         $open = Carbon::parse($branch->today().' '.$hours[0], $branch->timezone)->utc();
 
         // Aim for about 70% of the counters' capacity over the day, so peaks queue up and quiet hours do not.
@@ -53,6 +56,12 @@ class DemoDaySeeder extends Seeder
         $end = $now->copy()->subMinutes(2)->min($close);
         if ($end->lte($open->copy()->addMinutes(30))) {
             $end = $close;
+        }
+
+        // A whole day squeezed into a morning leaves a long queue, and a visitor who takes a number
+        // on the public demo should reach a counter after a few calls.
+        if (config('antre.demo.enabled')) {
+            $total = (int) round($total * $open->diffInMinutes($end) / $openMinutes);
         }
 
         $arrivals = $this->arrivalTimes($open, $end, $total);

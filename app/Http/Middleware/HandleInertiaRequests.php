@@ -43,6 +43,11 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user ? [...$user->toArray(), 'role' => $user->role->value] : null,
             ],
+            'demo' => config('antre.demo.enabled') ? [
+                'branch' => config('antre.demo.branch'),
+                'password' => config('antre.demo.password'),
+                'logins' => config('antre.demo.logins'),
+            ] : null,
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
                 'snap_token' => fn () => $request->session()->get('snap_token'),

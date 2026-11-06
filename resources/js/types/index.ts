@@ -26,9 +26,17 @@ export interface Flash {
     snap_token: string | null;
 }
 
+/** Only set on the public demo. */
+export interface Demo {
+    branch: string;
+    password: string;
+    logins: { email: string; role: string }[];
+}
+
 export interface SharedData {
     name: string;
     auth: Auth;
+    demo: Demo | null;
     flash: Flash;
     [key: string]: unknown;
 }

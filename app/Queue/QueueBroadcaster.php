@@ -16,8 +16,8 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Pushes queue changes to the browsers over Reverb. A dead websocket server must never
- * make a staff action fail, so errors are logged and swallowed here.
+ * Pushes queue changes to the browsers over Reverb or Ably. A dead websocket server must
+ * never make a staff action fail, so errors are logged and swallowed here.
  */
 class QueueBroadcaster
 {

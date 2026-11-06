@@ -6,10 +6,14 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { route as routeFn } from 'ziggy-js';
 import { initializeTheme } from './hooks/use-appearance';
+import { AblyConnector } from './lib/ably-connector';
 
-configureEcho({
-    broadcaster: 'reverb',
-});
+// Decided when the assets are built, see the Dockerfiles. Reverb unless told otherwise.
+if (import.meta.env.VITE_BROADCASTER === 'ably') {
+    configureEcho({ broadcaster: AblyConnector });
+} else {
+    configureEcho({ broadcaster: 'reverb' });
+}
 
 declare global {
     const route: typeof routeFn;

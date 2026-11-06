@@ -28,3 +28,6 @@ yarn-error.log
 /test-results
 /playwright-report
 .cursor/
+
+# Vercel CLI
+/.vercel

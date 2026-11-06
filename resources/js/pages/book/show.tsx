@@ -73,7 +73,7 @@ const tone: Record<Props['booking']['status'], string> = {
 };
 
 export default function BookShow({ booking, payment }: Props) {
-    const { flash, errors } = usePage<SharedData & { errors: Record<string, string> }>().props;
+    const { flash, errors, demo } = usePage<SharedData & { errors: Record<string, string> }>().props;
     const [busy, setBusy] = useState(false);
 
     useReloadOnReconnect(['booking']);
@@ -149,10 +149,13 @@ export default function BookShow({ booking, payment }: Props) {
 
                         {payment.driver === 'fake' && payment.fake_available && (
                             <div className="rounded-lg border border-dashed border-amber-400 bg-amber-50 p-3 dark:bg-amber-950/40">
-                                <p className="text-xs font-medium text-amber-900 dark:text-amber-200">Pembayaran simulasi, hanya untuk lokal</p>
+                                <p className="text-xs font-medium text-amber-900 dark:text-amber-200">
+                                    {demo ? 'Pembayaran simulasi. No real money moves.' : 'Pembayaran simulasi, hanya untuk lokal'}
+                                </p>
                                 <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-200/80">
-                                    Tidak ada kunci Midtrans di server ini. Tombol ini mengirim notifikasi bertanda tangan ke kode webhook yang sama
-                                    dengan Midtrans.
+                                    {demo
+                                        ? 'Ini demo: tidak ada uang sungguhan, kartu, atau rekening yang terlibat. Tombol ini hanya menandai deposit sebagai lunas.'
+                                        : 'Tidak ada kunci Midtrans di server ini. Tombol ini mengirim notifikasi bertanda tangan ke kode webhook yang sama dengan Midtrans.'}
                                 </p>
                                 <Button
                                     size="lg"

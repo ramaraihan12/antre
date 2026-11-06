@@ -59,12 +59,15 @@ class BookingService
      *
      * One UPDATE with the status in its WHERE clause: if a payment lands at the same moment,
      * the row is already paid and this statement skips it.
+     *
+     * @param  int|null  $limit  At most this many, oldest first. The rest wait for the next call.
      */
-    public function expireDue(): int
+    public function expireDue(?int $limit = null): int
     {
         $due = Booking::query()
             ->where('status', BookingStatus::PendingPayment)
             ->where('expires_at', '<=', now()->format('Y-m-d H:i:s'))
+            ->when($limit !== null, fn ($query) => $query->orderBy('expires_at')->limit($limit))
             ->pluck('public_id', 'id');
 
         if ($due->isEmpty()) {

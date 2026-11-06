@@ -4,6 +4,8 @@
 
 Queue (antrean) and booking system for small clinics and barbershops. Customers take a walk-in ticket from their phone or book a slot online with a deposit. Staff call numbers from a console, and a TV in the waiting room shows and announces them in Indonesian. Everything updates live over websockets.
 
+Live demo: https://antre-eight.vercel.app. The first page says what to click. Log in as `dimas@senyum.test` for the staff console or `owner@senyum.test` for the dashboard, both with the password `password`. No real money moves: the deposit is a simulated payment. Everyone shares the same made-up clinic, so you will see other visitors' tickets, and it resets every night, Jakarta time. The container and the database both sleep when idle, so the first page after a quiet spell takes a few seconds longer.
+
 Every business, branch, person and phone number in the demo data is made up: a dental clinic called Klinik Gigi Senyum (two branches in Salatiga) and a barbershop called Kumis Tipis. It runs on your laptop with Postgres and costs nothing.
 
 ![Staff console for Loket 1 showing the ticket being served, the next tickets and the booking check-in box](docs/console.png)
@@ -43,14 +45,14 @@ The workers run with broadcasting off, so the latency is the database work of on
 
 - **Tenants.** A business has branches, a branch has services (a code letter, a name, an average duration) and counters. Every tenant model uses a global scope keyed on the logged-in user's business, and policies check it again. Public pages find rows by branch slug or an unguessable `public_id`.
 - **Call next.** In one transaction the counter row is locked, then the next waiting ticket for a service that counter serves is picked with `SELECT ... FOR UPDATE SKIP LOCKED`. Paid bookings that checked in come first (priority), then ticket order. Recall, skip and done lock the ticket row and check its state before changing it.
-- **Live updates and voice.** Calls, skips and done events are broadcast through Laravel Reverb to the display, the staff console and the ticket page. There is no polling. A dead socket is caught and logged so it cannot fail a call, and pages reload their data when the socket comes back. Staff channels are authorized per business. The TV page builds the sentence ("Nomor antrean A dua belas, silakan ke loket dua") and speaks it with the browser Web Speech API, `id-ID` voice, after a chime. Browsers need one click to allow sound, so the page shows a "Suara aktif" switch.
+- **Live updates and voice.** Calls, skips and done events are broadcast through Laravel Reverb to the display, the staff console and the ticket page (the public demo uses Ably instead, see [below](#the-public-demo)). There is no polling. A dead socket is caught and logged so it cannot fail a call, and pages reload their data when the socket comes back. Staff channels are authorized per business. The TV page builds the sentence ("Nomor antrean A dua belas, silakan ke loket dua") and speaks it with the browser Web Speech API, `id-ID` voice, after a chime. Browsers need one click to allow sound, so the page shows a "Suara aktif" switch.
 - **Estimated wait.** Position counts waiting tickets of the same service ahead of yours. The wait uses the average of the last 20 finished tickets for that service (call to done), and falls back to the service's configured duration until there is history.
-- **Booking and deposit.** Slots come from branch opening hours and the service duration, and capacity is the number of counters serving that service. A booking is `pending_payment` for 15 minutes, then `antre:expire-bookings` (scheduled every minute) expires it. Payment goes through Midtrans Snap (sandbox).
-- **Webhook and fake payments.** `POST /webhooks/midtrans` checks `sha512(order_id + status_code + gross_amount + server key)` with `hash_equals`, writes the notification to a log table with a unique key (duplicates are ignored), and moves the booking through `pending_payment -> paid -> checked_in`, or `expired` and `cancelled`. Out-of-order and repeated notifications cannot move a booking backwards, and a payment that arrives after the hold ran out is only accepted if the slot still has room. Without Midtrans keys a local driver signs a notification itself (with a key derived from `APP_KEY`) and sends it through the same webhook code. It is labelled local only and is refused when `APP_ENV=production`.
+- **Booking and deposit.** Slots come from branch opening hours and the service duration, and capacity is the number of counters serving that service. A booking is `pending_payment` for 15 minutes, then `antre:expire-bookings` (scheduled every minute) expires it, and so does any booking page or action that runs after the hold ended. A lapsed hold never blocks a slot, with or without either of those. Payment goes through Midtrans Snap (sandbox).
+- **Webhook and fake payments.** `POST /webhooks/midtrans` checks `sha512(order_id + status_code + gross_amount + server key)` with `hash_equals`, writes the notification to a log table with a unique key (duplicates are ignored), and moves the booking through `pending_payment -> paid -> checked_in`, or `expired` and `cancelled`. Out-of-order and repeated notifications cannot move a booking backwards, and a payment that arrives after the hold ran out is only accepted if the slot still has room. Without Midtrans keys a local driver signs a notification itself (with a key derived from `APP_KEY`) and sends it through the same webhook code. It is labelled local only and is refused when `APP_ENV=production`, unless `DEMO_MODE` is on.
 
 ## Stack
 
-PHP 8.4, Laravel 12.70, Inertia 2.0 with React 19, TypeScript 5.7 and Tailwind 4.0 (the official React starter kit), Laravel Reverb 1.12, Postgres 17, database queue driver and the Laravel scheduler, Pest 4 with Larastan 3.13 and Pint 1.32, Playwright for the browser tests, ESLint and Prettier.
+PHP 8.4, Laravel 12.70, Inertia 2.0 with React 19, TypeScript 5.7 and Tailwind 4.0 (the official React starter kit), Laravel Reverb 1.12 (Ably on the public demo), Postgres 17, database queue driver and the Laravel scheduler, Pest 4 with Larastan 3.13 and Pint 1.32, Playwright for the browser tests, ESLint and Prettier.
 
 ## Run it
 
@@ -88,6 +90,7 @@ docker compose exec app php artisan db:seed --force
 | `MIDTRANS_CLIENT_KEY` | empty | sandbox client key for the Snap popup |
 | `BOOKING_HOLD_MINUTES` | 15 | how long an unpaid booking keeps its slot |
 | `REVERB_*` | key and ports preset, secret empty | keys and ports for the websocket server, fill the secret as shown above |
+| `DEMO_MODE` | off | for the public demo only, see [below](#the-public-demo). Leave it off anywhere else |
 
 For the Midtrans webhook to reach a laptop you need a tunnel to `/webhooks/midtrans`. I have not done that, see Notes.
 
@@ -99,9 +102,21 @@ vendor/bin/pest
 npm run build && npx playwright test   # browser tests, wipes antre_test
 ```
 
-The Pest suite covers the queue state machine, slot capacity, booking expiry and check-in, the webhook (bad signature, duplicates, out-of-order, late payments), tenant isolation through route model binding, policies and broadcast channel authorization, and the dashboard numbers. The concurrency tests need Postgres and are skipped without `TEST_DATABASE_URL`. Midtrans is never called: the Snap client is faked, and webhook tests sign their own payloads. My last run was 180 tests, 638 assertions, in 16 seconds. The two Playwright tests start a real app server and a real Reverb server: staff clicks Call next and the display and the ticket page show the number without a reload, and a customer books a slot and pays with the fake driver.
+The Pest suite covers the queue state machine, slot capacity, booking expiry and check-in, the webhook (bad signature, duplicates, out-of-order, late payments), tenant isolation through route model binding, policies and broadcast channel authorization, the dashboard numbers, and what `DEMO_MODE` changes. The concurrency tests need Postgres and are skipped without `TEST_DATABASE_URL`. Midtrans is never called: the Snap client is faked, and webhook tests sign their own payloads. My last run was 206 tests, 779 assertions, in 22 seconds. The two Playwright tests start a real app server and a real Reverb server: staff clicks Call next and the display and the ticket page show the number without a reload, and a customer books a slot and pays with the fake driver.
 
 CI runs Pint, Larastan, ESLint, Prettier and `tsc` in one job, Pest against a Postgres 17 service in a second, and the Vite build in a third. A fourth job builds the assets, starts the app and Reverb against a Postgres service and runs the two Playwright tests in headless Chromium.
+
+## The public demo
+
+It runs on Vercel's Container Runtime with Neon Postgres, both on free plans, from `Dockerfile.vercel` and `deploy/vercel/`. Nothing runs there between visits: the container gets stopped about 35 seconds after the last request, and local files do not survive that. So a few things work differently from a laptop or the compose setup, and a clone still gets Reverb and the scheduler unless it asks otherwise.
+
+- **Ably instead of Reverb.** Vercel closes websockets after 300 seconds and a Reverb process would have nowhere to run. Laravel's Ably broadcaster publishes inside the request that changes the queue, which is already how Reverb worked here (every event is `ShouldBroadcastNow`), so there is no queue worker and `QUEUE_CONNECTION` is `sync`.
+- **The browser gets a token, not a key.** I did not use the client that `php artisan install:broadcasting --ably` sets up, because it goes through Ably's Pusher adapter and puts half of the key in the bundle. `resources/js/lib/ably-connector.ts` puts ably-js behind the same Echo hooks, and `/broadcasting/ably-token` hands out a token that can only listen: on public channels for visitors, plus the channels of their own branches for staff. No part of the key is a build input. The only compile-time broadcast setting is `VITE_BROADCASTER=ably`, set in `Dockerfile.vercel` so the build does not depend on project settings. `ably/ably-php` stays on 1.x because Laravel's broadcaster does not work with 2.x.
+- **Still no polling.** A TV left open holds a connection to Ably and costs this app one token request every 12 hours.
+- **Expired holds.** There is no scheduler, so a hold is released by the next booking page or action, 20 at a time, and not on the minute. Until then a lapsed booking still says `pending_payment` in the database. Nobody sees the difference, because its own page releases it first and slots ignore it anyway.
+- **State.** Sessions and cache are in Postgres and logs go to stderr. There is no access log, and sessions are stored without the visitor's address or user agent.
+- **`DEMO_MODE`.** Allows the fake payment driver in production, refuses password, profile and account changes so one visitor cannot lock out the rest, and keeps the seeded branches open all day, because check-in needs a booking for today and a visitor may arrive at any hour. It also limits public write routes to 20 a minute and 60 an hour per visitor, and 300 an hour for everyone together. The counters are in Postgres, so they hold across containers. Off, none of this applies.
+- **Daily reset.** `.github/workflows/demo-reset.yml` runs `migrate:fresh --seed` and `DemoDaySeeder` just after midnight in Jakarta, with the connection string in a repo secret. Seeded tickets are dated when the seeder runs, and no bookings are seeded, so nothing goes stale. The site errors for a few seconds while the tables are rebuilt, and reads are not rate limited.
 
 ## Notes
 

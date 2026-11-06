@@ -1,6 +1,6 @@
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Button } from '@/components/ui/button';
-import { type SharedData } from '@/types';
+import { type Demo, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { CalendarClock, MonitorPlay, Ticket } from 'lucide-react';
 
@@ -8,8 +8,67 @@ interface Props {
     businesses: { name: string; branches: { name: string; slug: string; city: string | null }[] }[];
 }
 
+const guideLink = 'font-medium underline underline-offset-2';
+
+/** What a stranger should click. In English because that is who opens the public demo. */
+function DemoGuide({ demo }: { demo: Demo }) {
+    return (
+        <section
+            className="mt-8 rounded-xl border border-amber-300 bg-amber-50 p-5 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100"
+            data-testid="demo-guide"
+        >
+            <h2 className="text-lg font-semibold">Try it in three tabs</h2>
+            <p className="mt-1 text-sm">
+                This is a live demo. Everything in it is made up and no real money moves: the deposit is a simulated payment. Other visitors share the
+                same data and it resets every night. The app's screens are in Indonesian.
+            </p>
+
+            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm">
+                <li>
+                    Open the{' '}
+                    <a className={guideLink} href={`/display/${demo.branch}`} target="_blank" rel="noreferrer">
+                        waiting room TV
+                    </a>{' '}
+                    and keep it visible.
+                </li>
+                <li>
+                    <a className={guideLink} href={`/q/${demo.branch}`} target="_blank" rel="noreferrer">
+                        Take a number
+                    </a>{' '}
+                    as a walk-in customer.
+                </li>
+                <li>
+                    <a className={guideLink} href="/login" target="_blank" rel="noreferrer">
+                        Log in as staff
+                    </a>
+                    , open a counter and press "Panggil berikutnya". The TV changes without a reload.
+                </li>
+                <li>
+                    <a className={guideLink} href={`/book/${demo.branch}`} target="_blank" rel="noreferrer">
+                        Book a slot
+                    </a>{' '}
+                    for today, pay the simulated deposit, then enter the booking code under "Check-in booking" at the counter.
+                </li>
+            </ol>
+
+            <div className="mt-4 text-sm" data-testid="demo-logins">
+                <p className="font-medium">
+                    Staff logins, password <code>{demo.password}</code>
+                </p>
+                <ul className="mt-1 space-y-1">
+                    {demo.logins.map((login) => (
+                        <li key={login.email}>
+                            <code>{login.email}</code>: {login.role}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </section>
+    );
+}
+
 export default function Welcome({ businesses }: Props) {
-    const { auth } = usePage<SharedData>().props;
+    const { auth, demo } = usePage<SharedData>().props;
 
     return (
         <>
@@ -35,6 +94,8 @@ export default function Welcome({ businesses }: Props) {
                         Ambil nomor dari HP, pesan jam dengan deposit, dan lihat panggilan di layar TV. Semua yang di bawah ini data karangan untuk
                         demo.
                     </p>
+
+                    {demo && <DemoGuide demo={demo} />}
 
                     <div className="mt-8 space-y-6">
                         {businesses.map((business) => (

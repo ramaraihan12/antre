@@ -5,8 +5,9 @@ import { Label } from '@/components/ui/label';
 import PublicLayout from '@/layouts/public-layout';
 import { rupiah } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { type SharedData } from '@/types';
 import { type Slot } from '@/types/antre';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function BookCreate({ branch, services, days, hold_minutes }: Props) {
+    const { demo } = usePage<SharedData>().props;
     const form = useForm({ service_id: services[0]?.id ?? 0, date: days[0]?.date ?? '', time: '', name: '', phone: '' });
     const [slots, setSlots] = useState<Slot[] | null>(null);
     const [loadFailed, setLoadFailed] = useState(false);
@@ -55,6 +57,11 @@ export default function BookCreate({ branch, services, days, hold_minutes }: Pro
             <Head title={`Booking - ${branch.name}`} />
             <h1 className="text-2xl font-semibold tracking-tight">Booking dengan deposit</h1>
             <p className="text-muted-foreground mt-1 text-sm">Pilih layanan dan jam. Slot ditahan {hold_minutes} menit sampai deposit dibayar.</p>
+            {demo && (
+                <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                    Demo: deposit hanya simulasi. No real money moves, so use a made-up name and number.
+                </p>
+            )}
 
             <form
                 className="mt-6 space-y-6"

@@ -85,7 +85,8 @@ class DemoSeeder extends Seeder
             'slug' => $slug,
             'city' => $city,
             'timezone' => 'Asia/Jakarta',
-            'opening_hours' => $hours,
+            // Check-in needs a booking for today, and strangers open the public demo at any hour.
+            'opening_hours' => config('antre.demo.enabled') ? array_fill_keys(range(0, 6), ['00:00', '23:59']) : $hours,
         ]);
     }
 

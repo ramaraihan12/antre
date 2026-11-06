@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { FormEventHandler } from 'react';
 
@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
+import { type SharedData } from '@/types';
 
 type LoginForm = {
     email: string;
@@ -22,6 +23,7 @@ interface LoginProps {
 }
 
 export default function Login({ status, canResetPassword }: LoginProps) {
+    const { demo } = usePage<SharedData>().props;
     const { data, setData, post, processing, errors, reset } = useForm<LoginForm>({
         email: '',
         password: '',
@@ -38,6 +40,24 @@ export default function Login({ status, canResetPassword }: LoginProps) {
     return (
         <AuthLayout title="Masuk ke akun Anda" description="Isi email dan kata sandi untuk masuk">
             <Head title="Masuk" />
+
+            {demo && (
+                <div
+                    className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/40 dark:text-amber-100"
+                    data-testid="demo-logins"
+                >
+                    <p className="font-medium">
+                        Demo logins, password <code>{demo.password}</code>
+                    </p>
+                    <ul className="mt-1 space-y-1">
+                        {demo.logins.map((login) => (
+                            <li key={login.email}>
+                                <code>{login.email}</code>: {login.role}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             <form className="flex flex-col gap-6" onSubmit={submit}>
                 <div className="grid gap-6">

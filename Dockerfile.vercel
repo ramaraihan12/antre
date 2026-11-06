@@ -1,0 +1,90 @@
+# syntax=docker/dockerfile:1
+
+# The public demo on Vercel's Container Runtime. Same build as the Dockerfile in the repo root,
+# but this one runs alone: no Reverb, queue worker or scheduler next to it, and nothing runs
+# between visits. Settings that are not secret live here. APP_KEY, APP_URL, DB_URL and ABLY_KEY
+# come from the Vercel project.
+
+FROM php:8.4-apache AS base
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq-dev libzip-dev unzip \
+    && docker-php-ext-install opcache pdo_pgsql pcntl zip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+WORKDIR /var/www/html
+
+
+FROM base AS vendor
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Dependencies first so code changes don't reinstall them.
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction --no-progress
+
+COPY . .
+# Config is not cached: it reads APP_KEY and the rest at run time, and those are not here yet.
+RUN composer dump-autoload --optimize --no-dev --no-scripts \
+    && php artisan package:discover \
+    && php artisan route:cache
+
+
+FROM node:24-alpine AS assets
+
+# VITE_ values are compiled into the bundle. They are set here so the build does not depend on
+# project settings. This is the only broadcast setting the bundle gets: it asks the server for a
+# token, and no part of the Ably key is a build input.
+ENV VITE_APP_NAME=Antre \
+    VITE_BROADCASTER=ably
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY vite.config.js tsconfig.json ./
+COPY resources ./resources
+# Tailwind scans Laravel's pagination views for class names.
+COPY --from=vendor /var/www/html/vendor/laravel/framework/src/Illuminate/Pagination/resources/views ./vendor/laravel/framework/src/Illuminate/Pagination/resources/views
+RUN npm run build
+
+
+FROM base
+
+RUN a2enmod headers remoteip rewrite \
+    && a2disconf other-vhosts-access-log \
+    && a2dissite 000-default \
+    && : > /etc/apache2/ports.conf
+
+COPY deploy/vercel/apache.conf /etc/apache2/conf-enabled/zz-vercel.conf
+COPY deploy/vercel/php.ini "$PHP_INI_DIR/conf.d/zz-vercel.ini"
+
+COPY --from=vendor --chown=www-data:www-data /var/www/html /var/www/html
+COPY --from=assets --chown=www-data:www-data /app/public/build /var/www/html/public/build
+
+# Vercel's build leaves some directories, bootstrap/cache among them, at mode 0666. A worker cannot
+# enter a directory without the x bit, so Laravel finds no package manifest, tries to write a new
+# one and every request is a 500. A local docker build does not show this.
+RUN find /var/www/html -type d ! -perm 755 -exec chmod 755 {} +
+
+# Vercel sends traffic to port 80 unless the project sets PORT. Apache reads this when it starts.
+# Compiled views are a throwaway cache, so they go to /tmp and each container makes its own.
+ENV PORT=80 \
+    VIEW_COMPILED_PATH=/tmp/views \
+    APP_NAME=Antre \
+    APP_ENV=production \
+    APP_DEBUG=false \
+    DB_CONNECTION=pgsql \
+    SESSION_DRIVER=database \
+    SESSION_SECURE_COOKIE=true \
+    CACHE_STORE=database \
+    QUEUE_CONNECTION=sync \
+    LOG_CHANNEL=stderr \
+    LOG_LEVEL=warning \
+    MAIL_MAILER=array \
+    BROADCAST_CONNECTION=ably \
+    PAYMENT_DRIVER=fake \
+    DEMO_MODE=true
+
+CMD ["apache2-foreground"]

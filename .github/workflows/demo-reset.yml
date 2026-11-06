@@ -1,0 +1,47 @@
+name: demo reset
+
+# Puts the public demo back: whatever visitors changed goes, and today gets a fresh seeded queue.
+# There is no push or pull_request trigger on purpose, so a fork or a PR cannot run this, and the
+# job also checks where it is running.
+on:
+  schedule:
+    # 17:07 UTC is 00:07 in Jakarta. Tickets belong to one local day, so right after midnight the
+    # seeded queue is the one a visitor sees for the next 24 hours.
+    - cron: '7 17 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-reset
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    if: github.repository == 'ramaraihan12/antre' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql
+          tools: composer:v2
+          coverage: none
+
+      - run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+
+      # The connection string is only given to this step, not to the install above. Every date in
+      # the seeds comes from the clock at this moment, so nothing goes stale between resets.
+      # Seeding as if it were 13:30 fills the dashboard with a morning instead of an empty day.
+      - run: |
+          php artisan migrate:fresh --seed --force
+          php artisan db:seed --class=DemoDaySeeder --force
+        env:
+          DB_CONNECTION: pgsql
+          DB_URL: ${{ secrets.DEMO_DATABASE_URL }}
+          DEMO_MODE: 'true'
+          DEMO_UNTIL: '13:30'

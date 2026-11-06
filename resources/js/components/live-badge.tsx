@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { useConnectionStatus } from '@laravel/echo-react';
 
-/** A small dot that shows whether the websocket to Reverb is up. */
+/** A small dot that shows whether the live connection is up. */
 export default function LiveBadge({ className }: { className?: string }) {
     const status = useConnectionStatus();
     const connected = status === 'connected';

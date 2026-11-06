@@ -67,6 +67,10 @@ return [
         'ably' => [
             'driver' => 'ably',
             'key' => env('ABLY_KEY'),
+            // Events are published inside the request, so a slow Ably must not hold up a staff action.
+            'httpOpenTimeout' => 2000,
+            'httpRequestTimeout' => 4000,
+            'httpMaxRetryCount' => 1,
         ],
 
         'log' => [

@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Middleware\ExpireLapsedBookings;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LockDemoAccounts;
 use App\Http\Middleware\SetTenant;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -16,10 +18,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->alias(['tenant' => SetTenant::class]);
+        $middleware->alias([
+            'tenant' => SetTenant::class,
+            'demo.locked' => LockDemoAccounts::class,
+            'expire-holds' => ExpireLapsedBookings::class,
+        ]);
 
         // The tenant must be set before route model binding runs, or bindings would ignore it.
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: SetTenant::class);
+
+        // Same reason: the booking a page binds to must already show that its hold ran out.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ExpireLapsedBookings::class);
 
         // Midtrans calls this from outside. The signature check replaces the CSRF token.
         $middleware->validateCsrfTokens(except: ['webhooks/midtrans']);

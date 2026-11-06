@@ -6,10 +6,11 @@ use App\Models\Booking;
 use RuntimeException;
 
 /**
- * Local-only stand-in for the customer paying in Midtrans.
+ * Stand-in for the customer paying in Midtrans, for local use and the public demo.
  *
  * It builds a notification the way Midtrans would, signs it with the fake server key and
- * hands it to the same processor the real webhook route uses. Refused in production.
+ * hands it to the same processor the real webhook route uses. No money is involved anywhere.
+ * Refused in production, unless that production is the public demo.
  */
 class FakePayment
 {
@@ -20,7 +21,7 @@ class FakePayment
 
     public function available(): bool
     {
-        return ! app()->isProduction() && $this->payments->driver() === Payments::FAKE;
+        return $this->payments->fakeAllowed() && $this->payments->driver() === Payments::FAKE;
     }
 
     /** @return string The processor outcome. */
