@@ -41,6 +41,10 @@ on:
         description: Tickets already waiting in each branch
         type: number
         default: 300
+      broadcasting:
+        description: Broadcast display updates through Reverb. Off sets BROADCAST_CONNECTION=null for the app, so TV clients receive nothing and the tv_* numbers mean nothing
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -65,7 +69,7 @@ jobs:
       # switch when APP_ENV is production, see AppServiceProvider and WalkInThrottleTest.
       APP_ENV: local
       LOADTEST_LIFT_WALKIN_LIMIT: 'true'
-      BROADCAST_CONNECTION: reverb
+      BROADCAST_CONNECTION: ${{ inputs.broadcasting && 'reverb' || 'null' }}
       REVERB_APP_ID: antre-loadtest
       REVERB_APP_KEY: antre-loadtest-key
       REVERB_HOST: 127.0.0.1
