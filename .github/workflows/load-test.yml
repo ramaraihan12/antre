@@ -1,0 +1,258 @@
+name: load-test
+
+# Run by hand from the Actions tab. There is no schedule: a run is a few minutes of CPU, and the
+# target is a throwaway app started inside the job, never the public demo.
+on:
+  workflow_dispatch:
+    inputs:
+      staff_vus:
+        description: Logged-in staff clicking at the top of the ramp, two per counter
+        type: number
+        default: 20
+      walkins_per_second:
+        description: New walk-in customers a second at the top of the ramp
+        type: number
+        default: 5
+      tv_clients:
+        description: Websocket clients listening to the TV displays
+        type: number
+        default: 20
+      ramp_seconds:
+        description: Seconds to climb to the top of the ramp
+        type: number
+        default: 20
+      duration_seconds:
+        description: Seconds to hold the top of the ramp
+        type: number
+        default: 60
+      drain_seconds:
+        description: Most seconds staff get afterwards to empty the queue
+        type: number
+        default: 90
+      branches:
+        description: Branches, each with its own TV display
+        type: number
+        default: 3
+      counters_per_branch:
+        description: Counters per branch, with two staff users each
+        type: number
+        default: 4
+      tickets_per_branch:
+        description: Tickets already waiting in each branch
+        type: number
+        default: 300
+
+permissions:
+  contents: read
+
+concurrency:
+  group: load-test
+  cancel-in-progress: false
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: antre
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # Not production, which is what lets the walk-in limit be lifted. The app ignores the
+      # switch when APP_ENV is production, see AppServiceProvider and WalkInThrottleTest.
+      APP_ENV: local
+      LOADTEST_LIFT_WALKIN_LIMIT: 'true'
+      BROADCAST_CONNECTION: reverb
+      REVERB_APP_ID: antre-loadtest
+      REVERB_APP_KEY: antre-loadtest-key
+      REVERB_HOST: 127.0.0.1
+      REVERB_PORT: 8090
+      REVERB_SCHEME: http
+      REVERB_SERVER_HOST: 127.0.0.1
+      REVERB_SERVER_PORT: 8090
+      BASE_URL: http://127.0.0.1
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Same PHP as ci.yml. The job uses it for artisan (migrate, seed, check) and for Reverb.
+      # The web app itself runs in a container, see "Start the app".
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql
+          tools: composer:v2
+          coverage: none
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Make keys for this run
+        run: |
+          cp .env.example .env
+          echo "APP_KEY=$(php artisan key:generate --show)" >> "$GITHUB_ENV"
+          secret=$(openssl rand -hex 16)
+          echo "::add-mask::$secret"
+          echo "REVERB_APP_SECRET=$secret" >> "$GITHUB_ENV"
+          mkdir -p loadtest/out
+
+      # Started with docker run and not as a job service, because a service cannot be given
+      # server flags and pg_stat_statements has to be preloaded when Postgres starts.
+      - name: Start Postgres 17 with pg_stat_statements
+        run: |
+          docker run -d --name pg --network host \
+            -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=antre \
+            postgres:17 \
+            -c shared_preload_libraries=pg_stat_statements \
+            -c pg_stat_statements.track=all
+          for i in $(seq 1 30); do
+            docker exec pg pg_isready -U postgres -d antre && break
+            sleep 1
+          done
+          docker exec pg psql -U postgres -d antre -c 'create extension pg_stat_statements'
+
+      - run: php artisan migrate --force
+
+      - name: Seed branches, counters, staff, tickets and bookings
+        run: >
+          php artisan antre:loadtest-seed
+          --branches=${{ inputs.branches }}
+          --counters=${{ inputs.counters_per_branch }}
+          --tickets=${{ inputs.tickets_per_branch }}
+
+      # The app is the repo's own Dockerfile: Apache with mod_php, one PHP process per request,
+      # which is how the public demo runs (Dockerfile.vercel is the same base image). It is
+      # not `php artisan serve`, because that is a single dev server with its own worker count
+      # and could not show what Apache's workers do to Postgres connections. Host networking
+      # keeps Postgres and Reverb on 127.0.0.1 for both the app and k6. The root Dockerfile has
+      # no opcache, unlike Dockerfile.vercel, so PHP is slower here than on the demo.
+      - name: Start the app
+        run: |
+          docker build -t antre-loadtest .
+          docker run -d --name app --network host \
+            -e APP_KEY -e APP_ENV -e APP_DEBUG=false -e APP_URL=http://127.0.0.1 \
+            -e LOG_CHANNEL=stderr -e LOG_LEVEL=warning \
+            -e DB_CONNECTION -e DB_HOST -e DB_PORT -e DB_DATABASE -e DB_USERNAME -e DB_PASSWORD \
+            -e SESSION_DRIVER=database -e CACHE_STORE=database -e QUEUE_CONNECTION=database \
+            -e BROADCAST_CONNECTION -e REVERB_APP_ID -e REVERB_APP_KEY -e REVERB_APP_SECRET \
+            -e REVERB_HOST -e REVERB_PORT -e REVERB_SCHEME \
+            -e LOADTEST_LIFT_WALKIN_LIMIT \
+            antre-loadtest
+          for i in $(seq 1 60); do
+            curl -fsS -o /dev/null "$BASE_URL/up" && exit 0
+            sleep 1
+          done
+          docker logs app
+          exit 1
+
+      - name: Start Reverb
+        run: |
+          ulimit -n 65535
+          nohup php artisan reverb:start --host=127.0.0.1 --port=8090 > loadtest/out/reverb.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS -o /dev/null http://127.0.0.1:8090/up && exit 0
+            sleep 1
+          done
+          cat loadtest/out/reverb.log
+          exit 1
+
+      - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '1.8.3'
+
+      - name: Run k6
+        id: k6
+        continue-on-error: true
+        env:
+          WS_URL: ws://127.0.0.1:8090
+          STAFF_VUS: ${{ inputs.staff_vus }}
+          WALKIN_RATE: ${{ inputs.walkins_per_second }}
+          TV_CLIENTS: ${{ inputs.tv_clients }}
+          RAMP_S: ${{ inputs.ramp_seconds }}
+          DURATION_S: ${{ inputs.duration_seconds }}
+          DRAIN_S: ${{ inputs.drain_seconds }}
+        run: |
+          docker exec pg psql -U postgres -d antre -c 'select pg_stat_statements_reset()' > /dev/null
+
+          # Postgres connections every 2 seconds, to see them climb with the Apache workers.
+          echo 'time,connections,active,waiting_on_lock' > loadtest/out/pg-connections.csv
+          (
+            while true; do
+              docker exec pg psql -U postgres -d antre -Atc "select now(), count(*), count(*) filter (where state = 'active'), count(*) filter (where wait_event_type = 'Lock') from pg_stat_activity where datname = 'antre'" | tr '|' ',' >> loadtest/out/pg-connections.csv
+              sleep 2
+            done
+          ) &
+          sampler=$!
+
+          set +e
+          k6 run --log-format=raw \
+            --console-output=loadtest/out/tv-snapshots.log \
+            --summary-export=loadtest/out/k6-summary.json \
+            loadtest/k6/load.js
+          status=$?
+          kill "$sampler"
+          exit $status
+
+      - name: Check every ticket was called exactly once
+        id: check
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          php artisan antre:loadtest-check --json=loadtest/out/checker.json | tee loadtest/out/checker.txt
+
+      - name: Top statements from pg_stat_statements
+        if: always()
+        run: |
+          docker exec pg psql -U postgres -d antre -X -c "
+            select calls,
+                   round(total_exec_time::numeric, 1) as total_ms,
+                   round(mean_exec_time::numeric, 2) as mean_ms,
+                   round(max_exec_time::numeric, 1) as max_ms,
+                   rows,
+                   regexp_replace(left(query, 140), '\s+', ' ', 'g') as query
+            from pg_stat_statements
+            where dbid = (select oid from pg_database where datname = 'antre')
+            order by total_exec_time desc
+            limit 25" | tee loadtest/out/pg-stat-statements-top.txt
+
+      - name: Write the job summary
+        if: always()
+        run: |
+          {
+            echo '### Checker'
+            echo '```'
+            cat loadtest/out/checker.txt || true
+            echo '```'
+            echo '### Top statements by total time'
+            echo '```'
+            cat loadtest/out/pg-stat-statements-top.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the app log
+        if: always()
+        run: docker logs --tail 500 app > loadtest/out/app.log 2>&1 || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test
+          path: |
+            loadtest/out/k6-summary.json
+            loadtest/out/checker.txt
+            loadtest/out/checker.json
+            loadtest/out/pg-stat-statements-top.txt
+            loadtest/out/pg-connections.csv
+            loadtest/out/tv-snapshots.log
+            loadtest/out/app.log
+            loadtest/out/reverb.log
+
+      # Both steps above are allowed to fail so the artifacts always upload. The run still fails here.
+      - name: Fail if k6 thresholds or the checker failed
+        if: steps.k6.outcome != 'success' || steps.check.outcome != 'success'
+        run: |
+          echo "k6: ${{ steps.k6.outcome }}, checker: ${{ steps.check.outcome }}"
+          exit 1
