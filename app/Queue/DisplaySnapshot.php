@@ -12,9 +12,10 @@ use Illuminate\Support\Facades\DB;
 /**
  * What the TV display shows for a branch: one number per counter and the last five calls.
  *
- * The version is branches.display_version, which QueueDesk raises by one inside the transaction
- * of every change the display can show. It only goes up, and no two changes share a number, so
- * the TV can tell which of two snapshots is newer without comparing clocks.
+ * The version is branches.display_version, which QueueDesk raises inside the transaction of every
+ * change the display can show, to the larger of the old value plus one and the clock in
+ * milliseconds. It only goes up, no two changes share a number, and it stays above whatever an
+ * open TV saw before a database rebuild, so the TV can tell which of two snapshots is newer.
  */
 class DisplaySnapshot
 {

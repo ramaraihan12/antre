@@ -148,12 +148,18 @@ class QueueDesk
     }
 
     /**
-     * Gives the change a new display version. Call it last in the transaction: the row lock it
-     * takes is held until commit, so versions follow commit order and the lock stays short.
+     * Gives the change a new display version: one more than the branch had, but never below the
+     * clock in milliseconds. Call it last in the transaction: the row lock it takes is held until
+     * commit, so versions are unique and follow commit order, and the lock stays short. Anchoring
+     * to the clock keeps the number above anything an open TV can still hold after the demo
+     * database is rebuilt or a backup is restored, when the stored counter starts over.
      */
     private function bumpDisplay(int $branchId): void
     {
-        DB::table('branches')->where('id', $branchId)->increment('display_version');
+        $now = (int) floor(microtime(true) * 1000);
+        $pick = DB::connection()->getDriverName() === 'sqlite' ? 'max' : 'greatest';
+
+        DB::update("update branches set display_version = {$pick}(display_version + 1, ?) where id = ?", [$now, $branchId]);
     }
 
     private function logCall(Ticket $ticket, Counter $counter, string $kind): void
