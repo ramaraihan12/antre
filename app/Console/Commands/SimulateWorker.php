@@ -31,8 +31,7 @@ class SimulateWorker extends Command
         config(['broadcasting.default' => 'null']);
 
         if ($path = $this->option('snapshots-to')) {
-            Event::listen(DisplayUpdated::class, fn (DisplayUpdated $event) => file_put_contents($path, json_encode($event->snapshot).'
-', FILE_APPEND | LOCK_EX));
+            Event::listen(DisplayUpdated::class, fn (DisplayUpdated $event) => file_put_contents($path, json_encode($event->snapshot)."\n", FILE_APPEND | LOCK_EX));
         }
 
         $counter = Counter::query()->findOrFail($this->argument('counter'));

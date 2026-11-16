@@ -4,6 +4,7 @@ use App\Enums\TicketStatus;
 use App\Models\Counter;
 use App\Models\Ticket;
 use App\Models\TicketCall;
+use App\Queue\DisplaySnapshot;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
 
@@ -136,8 +137,7 @@ it('pushes one snapshot per change and each carries the version and content of t
         }
 
         $snapshots = collect(glob("$dir/*.jsonl"))
-            ->flatMap(fn (string $file) => array_map(fn (string $line) => json_decode($line, true), array_filter(explode('
-', file_get_contents($file)))))
+            ->flatMap(fn (string $file) => array_map(fn (string $line) => json_decode($line, true), array_filter(preg_split('/\R/', file_get_contents($file)))))
             ->sortBy('version')
             ->values();
     } finally {
@@ -163,4 +163,53 @@ it('pushes one snapshot per change and each carries the version and content of t
 
     expect($snapshots->last()['version'])->toBe((int) DB::table('branches')->where('id', $s->branch->id)->value('display_version'))
         ->and($occupied($snapshots->last()))->toBe(0);
+});
+
+it('serves a page-load snapshot whose version and content match the snapshot pushed with that version', function () {
+    $s = scenario();
+    $counters = [$s->c1, $s->c2];
+    foreach (range(3, 5) as $number) {
+        $extra = Counter::factory()->for($s->branch)->create(['number' => $number]);
+        $extra->services()->attach([$s->a->id]);
+        $counters[] = $extra;
+    }
+    $s->c2->services()->attach($s->b->id);
+    foreach (range(1, 60) as $i) {
+        issue($s->branch, $i % 3 === 0 ? $s->b : $s->a);
+    }
+
+    $dir = sys_get_temp_dir().'/antre-snap-'.bin2hex(random_bytes(4));
+    mkdir($dir);
+
+    try {
+        $workers = startWorkers(array_map(fn (Counter $c) => $c->id, $counters), think: 1, snapshotsDir: $dir);
+
+        // Page loads while the workers change the branch, outside any transaction of ours.
+        $loads = [];
+        while (collect($workers)->contains(fn (Process $w) => $w->isRunning())) {
+            $loads[] = app(DisplaySnapshot::class)->for($s->branch->fresh());
+            usleep(2000);
+        }
+        foreach ($workers as $worker) {
+            expect($worker->isSuccessful())->toBeTrue($worker->getErrorOutput().$worker->getOutput());
+        }
+
+        $pushed = collect(glob("$dir/*.jsonl"))
+            ->flatMap(fn (string $file) => array_map(fn (string $line) => json_decode($line, true), array_filter(preg_split('/\R/', file_get_contents($file)))))
+            ->keyBy('version');
+    } finally {
+        array_map('unlink', glob("$dir/*"));
+        rmdir($dir);
+    }
+
+    $content = fn (array $x) => json_encode([$x['counters'], $x['recent']]);
+    $matched = 0;
+    foreach ($loads as $load) {
+        if ($pushed->has($load['version'])) {
+            expect($content($load))->toBe($content($pushed[$load['version']]));
+            $matched++;
+        }
+    }
+
+    expect($matched)->toBeGreaterThan(0);
 });

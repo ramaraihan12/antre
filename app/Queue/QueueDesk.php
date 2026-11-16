@@ -174,7 +174,7 @@ class QueueDesk
 
         DB::update("update branches set display_version = {$pick}(display_version + 1, ?) where id = ?", [$now, $branch->id]);
 
-        return $this->snapshots->for($branch);
+        return $this->snapshots->inChange($branch);
     }
 
     private function logCall(Ticket $ticket, Counter $counter, string $kind): void

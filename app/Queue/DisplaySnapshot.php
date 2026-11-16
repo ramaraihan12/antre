@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Version and content must describe one moment. QueueDesk builds the snapshot inside the change's
  * own transaction, right after the bump, while it holds the branch row lock. Called on its own
- * (the page load) it reads both in one REPEATABLE READ transaction on Postgres.
+ * (the page load, for()) it reads both in one REPEATABLE READ transaction on Postgres.
  */
 class DisplaySnapshot
 {
@@ -30,6 +30,8 @@ class DisplaySnapshot
      */
     public function for(Branch $branch): array
     {
+        // Already inside someone else's transaction there is nothing to open: the caller is
+        // responsible for reading at one point in time (QueueDesk uses inChange() for that).
         if (DB::transactionLevel() > 0) {
             return $this->build($branch);
         }
@@ -41,6 +43,17 @@ class DisplaySnapshot
 
             return $this->build($branch);
         });
+    }
+
+    /**
+     * The snapshot of a change, built inside that change's transaction right after the version
+     * bump, while the branch row lock is held. Only QueueDesk calls this.
+     *
+     * @return array{counters: list<array{number: int, label: string, code: string|null}>, recent: list<array{code: string, counter: string, kind: string}>, version: int, built_at: int}
+     */
+    public function inChange(Branch $branch): array
+    {
+        return $this->build($branch);
     }
 
     /** @return array{counters: list<array{number: int, label: string, code: string|null}>, recent: list<array{code: string, counter: string, kind: string}>, version: int, built_at: int} */

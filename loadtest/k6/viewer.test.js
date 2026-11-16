@@ -70,3 +70,33 @@ test('counters can be given as objects the way the server sends them', () => {
 test('final() is null before anything arrived', () => {
     assert.equal(createViewer().final(), null);
 });
+
+test('a newer version carrying older never-displayed content counts as stale (call vanishes from the head)', () => {
+    const tv = createViewer();
+    tv.receive(snap(1, ['A-029'], ['A-029@Loket 1:call', 'A-028@Loket 2:call']));
+    // The A-029 call is gone from the list, and this exact content was never shown before.
+    const r = tv.receive(snap(2, ['A-029'], ['A-028@Loket 2:call', 'A-027@Loket 3:call']));
+
+    assert.equal(r.displayed, true);
+    assert.equal(r.stale, true);
+});
+
+test('a freed ticket put back on a counter is the stale one, the correct return is not', () => {
+    const tv = createViewer();
+    tv.receive(snap(1, ['A-031'], ['A-031@Loket 4:call']));
+    tv.receive(snap(2, [null], ['A-031@Loket 4:call']));
+    const stale = tv.receive(snap(3, ['A-031'], ['A-031@Loket 4:call']));
+    const correct = tv.receive(snap(4, [null], ['A-031@Loket 4:call']));
+
+    assert.equal(stale.stale, true);
+    assert.equal(correct.stale, false);
+    assert.equal(tv.tally().staleDisplayed, 1);
+});
+
+test('new calls at the head of the recent list are not stale', () => {
+    const tv = createViewer();
+    tv.receive(snap(1, ['A-001'], ['A-001@Loket 1:call']));
+    const r = tv.receive(snap(2, ['A-001', 'A-002'], ['A-002@Loket 2:call', 'A-001@Loket 1:call']));
+
+    assert.equal(r.stale, false);
+});

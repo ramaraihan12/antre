@@ -8,10 +8,28 @@ export function contentOf(snapshot) {
     return JSON.stringify([snapshot.counters.map((c) => (c && typeof c === 'object' ? c.code : c)), snapshot.recent.map((r) => (typeof r === 'string' ? r : `${r.code}@${r.counter}:${r.kind}`))]);
 }
 
+const codesOf = (snapshot) => snapshot.counters.map((c) => (c && typeof c === 'object' ? c.code : c));
+const recentOf = (snapshot) => snapshot.recent.map((r) => (typeof r === 'string' ? r : `${r.code}@${r.counter}:${r.kind}`));
+
+/**
+ * The recent-calls list only ever gains entries at its head: the new list is some new calls
+ * followed by the front of the old one, with at least one entry in common. Anything else means a
+ * call the TV already showed vanished or came back out of order.
+ */
+export function recentAdvances(previous, next) {
+    if (previous.length === 0) return true;
+    for (let k = 0; k < next.length; k++) {
+        const tail = next.slice(k);
+        const front = previous.slice(0, tail.length);
+        if (tail.length === front.length && tail.every((entry, i) => entry === front[i])) return true;
+    }
+    return false;
+}
+
 export function createViewer() {
     let shown = null; // { version, content } on screen
     const seenAt = new Map(); // version -> content of the first arrival with that version
-    const displayedBefore = new Set(); // contents that were on screen at some point
+    const finished = new Set(); // codes that were on a counter and then displayed as gone: a ticket is called once, so they never come back
     const tally = { arrived: 0, displayed: 0, rawRegressions: 0, staleDisplayed: 0, sameVersionDifferentContent: 0 };
     let highestArrived = -Infinity;
 
@@ -39,19 +57,23 @@ export function createViewer() {
             if (sameVersionDifferentContent) tally.sameVersionDifferentContent++;
 
             const displayed = shown === null || snapshot.version > shown.version;
-            // Older content put on screen: this exact content was already shown before and a
-            // different one replaced it. Every real change leaves a new call log or occupancy, so a
-            // state does not legitimately come back.
-            const stale = displayed && shown !== null && content !== shown.content && displayedBefore.has(content);
-
+            // Older content put on screen, judged with facts that only move forward: a code shown
+            // as gone must not be back on a counter, and the recent calls may only gain entries at
+            // the head. Exact repeats of an earlier state are fine, a newer version can hold them.
+            let stale = false;
             if (displayed) {
-                shown = { version: snapshot.version, content };
-                displayedBefore.add(content);
+                const codes = codesOf(snapshot).filter((code) => code);
+                const recent = recentOf(snapshot);
+                if (shown !== null) {
+                    stale = codes.some((code) => finished.has(code)) || !recentAdvances(shown.recent, recent);
+                    for (const code of shown.codes) if (!codes.includes(code)) finished.add(code);
+                }
+                shown = { version: snapshot.version, content, codes, recent };
                 tally.displayed++;
                 if (stale) tally.staleDisplayed++;
             }
 
-            return { displayed, stale: displayed && stale, sameVersionDifferentContent };
+            return { displayed, stale, sameVersionDifferentContent };
         },
 
         /** What is on screen now, or null before anything arrived. */

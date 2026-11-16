@@ -106,7 +106,7 @@ const snapshots = new Counter('tv_snapshots');
 const subscribed = new Counter('tv_subscriptions');
 const deliveryMs = new Trend('tv_delivery_ms', true); // receive time minus the snapshot's built_at
 // What a viewer sees, after the TV's accept rule (strictly newer wins), see viewer.js:
-const staleDisplayed = new Counter('tv_stale_displayed'); // displayed snapshots whose content is older than something already displayed
+const staleDisplayed = new Counter('tv_stale_displayed'); // displayed snapshots that take the screen backwards: a ticket shown as gone is back, or a recent call vanished
 const sameVersion = new Counter('tv_same_version_different_content'); // two arrivals with one version and different content
 const finalMismatch = new Counter('tv_final_mismatch'); // clients whose final screen differs from the database at the end
 const finalChecked = new Counter('tv_final_checked'); // clients that could be compared at the end
@@ -292,7 +292,18 @@ export function tv() {
     // Only at the end: a socket that dropped mid-run is compared against a database still moving.
     const shown = viewer.final();
     if (shown !== null && TOTAL_S * 1000 - exec.instance.currentTestRunDuration <= 2000) {
-        const truth = new Session().displayState(branch.slug);
+        // Staff requests can still be in flight when the socket closes, so read the database
+        // until two reads in a row agree before comparing.
+        const session = new Session();
+        let truth = session.displayState(branch.slug);
+        for (let i = 0; i < 10 && truth !== null; i++) {
+            sleep(1);
+            const again = session.displayState(branch.slug);
+            if (again === null) break;
+            const settled = again.version === truth.version;
+            truth = again;
+            if (settled) break;
+        }
         if (truth !== null) {
             finalChecked.add(1);
             const same = contentOf(truth) === shown.content;
