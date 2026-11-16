@@ -18,7 +18,8 @@ const DURATION_S = num('DURATION_S', 60);
 const DRAIN_S = num('DRAIN_S', 90);
 // Two staff per counter: by default every seeded account gets a VU. A given number is rounded
 // down to an even one, and capped at the number of accounts, so no counter has a lone user.
-const requestedStaff = num('STAFF_VUS', staffUsers.length);
+// Empty, 0 and non-numbers count as not given.
+const requestedStaff = Number(__ENV.STAFF_VUS) || staffUsers.length;
 const STAFF_VUS = Math.min(Math.max(2, requestedStaff - (requestedStaff % 2)), staffUsers.length);
 if (STAFF_VUS !== requestedStaff) {
     console.warn(`STAFF_VUS ${requestedStaff} became ${STAFF_VUS}: two per counter, at most ${staffUsers.length} accounts.`);

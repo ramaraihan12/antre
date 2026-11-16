@@ -57,7 +57,7 @@ php artisan antre:loadtest-check
 
 For numbers that mean something, run the app with `docker compose up` (Apache, as in the workflow) and put the two settings above in `.env` first. Pass `BASE_URL` (default `http://127.0.0.1:8010`), `WS_URL` (default `ws://127.0.0.1:8090`) and `REVERB_APP_KEY` (default `antre-local-key`) to k6 with `-e` if yours differ.
 
-Sizes are environment variables: `STAFF_VUS`, `WALKIN_RATE`, `TV_CLIENTS`, `CHECKIN_VUS`, `RAMP_S`, `DURATION_S` and `DRAIN_S`. `STAFF_VUS` defaults to every seeded account, branches x counters x 2, which is two per counter. Staff take the accounts in order, one VU per account, so an odd value is rounded down to an even one and a value above the number of accounts is capped, both with a warning. A quick try: `RAMP_S=5 DURATION_S=15 STAFF_VUS=6 WALKIN_RATE=2 TV_CLIENTS=4 k6 run ...`.
+Sizes are environment variables: `STAFF_VUS`, `WALKIN_RATE`, `TV_CLIENTS`, `CHECKIN_VUS`, `RAMP_S`, `DURATION_S` and `DRAIN_S`. `STAFF_VUS` defaults to every seeded account, branches x counters x 2, which is two per counter. Staff take the accounts in order, one VU per account, so an odd value is rounded down to an even one and a value above the number of accounts is capped, both with a warning (k6 writes it to `tv-snapshots.log`, not the job log). An empty or 0 value means the default. A quick try: `RAMP_S=5 DURATION_S=15 STAFF_VUS=6 WALKIN_RATE=2 TV_CLIENTS=4 k6 run ...`.
 
 ## The snapshot log
 
