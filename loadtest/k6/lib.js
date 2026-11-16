@@ -4,15 +4,19 @@ import { check } from 'k6';
 
 export const BASE = (__ENV.BASE_URL || 'http://127.0.0.1:8010').replace(/\/$/, '');
 
-// Load must never reach the public demo. Only a local address is accepted, and a Vercel or
-// portfolio host is refused even with ALLOW_REMOTE_TARGET.
-const host = BASE.replace(/^https?:\/\//, '').split(/[/:]/)[0];
-if (/(^|\.)(vercel\.app|vercel\.com|vercel\.sh|is-a\.dev)$/i.test(host) || /antre-eight/i.test(host)) {
-    throw new Error(`Refusing to load test ${BASE}: that is production.`);
+// Load must never reach the public demo. Only a local address is accepted, for the app and
+// for the websocket, and a Vercel or portfolio host is always refused.
+export function guardHost(url) {
+    const host = url.replace(/^[a-z]+:\/\//i, '').split(/[/:]/)[0];
+    if (/(^|\.)(vercel\.app|vercel\.com|vercel\.sh|is-a\.dev)$/i.test(host) || /antre-eight/i.test(host)) {
+        throw new Error(`Refusing to load test ${url}: that is production.`);
+    }
+    if (!['localhost', '127.0.0.1', '[', '::1'].includes(host)) {
+        throw new Error(`Refusing to load test ${url}: only localhost is allowed.`);
+    }
 }
-if (!['localhost', '127.0.0.1', '[::1]', '::1'].includes(host) && __ENV.ALLOW_REMOTE_TARGET !== '1') {
-    throw new Error(`Refusing to load test ${BASE}: only localhost is allowed unless ALLOW_REMOTE_TARGET=1.`);
-}
+
+guardHost(BASE);
 
 export const manifest = JSON.parse(open(__ENV.MANIFEST || '../out/manifest.json'));
 
@@ -98,5 +102,8 @@ export class Session {
     }
 }
 
-/** A 302 or 303 that does not bounce to the login page. */
-export const accepted = (r) => (r.status === 302 || r.status === 303) && !String(r.headers.Location).includes('/login');
+/**
+ * A 302 or 303 that does not bounce to the login page. The app also redirects back when it
+ * refuses an action, so this does not prove the action worked; the checker does.
+ */
+export const notBounced = (r) => (r.status === 302 || r.status === 303) && !String(r.headers.Location).includes('/login');

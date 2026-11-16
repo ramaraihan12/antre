@@ -56,7 +56,8 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
-        // Walk-ins are 30 a minute per address. The load test switch lifts that and nothing else,
+        // Walk-ins are 30 a minute per address, in a bucket of their own (they used to share the
+        // unnamed per-address bucket with booking posts). The load test switch lifts that and nothing else,
         // and is ignored in production and on the demo.
         RateLimiter::for('walkin', function (Request $request) {
             if (config('antre.loadtest.lift_walkin_limit') && ! app()->isProduction() && ! config('antre.demo.enabled')) {

@@ -2,7 +2,7 @@
 
 A k6 test that drives the whole app over HTTP and websockets, and a checker that proves afterwards that no ticket was called twice. `antre:simulate` calls `QueueDesk` directly with broadcasting off, so it says nothing about login, sessions, Apache, the Reverb broadcast after each commit or the TV display. This does.
 
-Run it only against a copy you started yourself. The scripts refuse any address that is not localhost, and always refuse `*.vercel.app`, so the public demo cannot be hit by accident.
+Run it only against a copy you started yourself. The scripts refuse any address that is not localhost, and always refuse `*.vercel.app`, so the public demo cannot be hit by accident. The same goes for `WS_URL`.
 
 ## What runs
 
@@ -33,7 +33,7 @@ The job builds the repo's own `Dockerfile` (Apache with mod_php, like the demo),
 | `pg-stat-statements-top.txt` | the 25 statements that took the most total time |
 | `pg-connections.csv` | Postgres connections, active ones and lock waits every 2 seconds |
 | `tv-snapshots.log` | one line per snapshot a TV client received |
-| `app.log`, `reverb.log` | warnings from the app and Reverb |
+| `app.log`, `reverb.log` | stderr of the app (warnings) and Reverb |
 
 The root `Dockerfile` has no opcache, unlike `Dockerfile.vercel`, so PHP is slower here than on the demo. Compare runs with each other, not with the demo.
 
@@ -57,7 +57,7 @@ php artisan antre:loadtest-check
 
 For numbers that mean something, run the app with `docker compose up` (Apache, as in the workflow) and put the two settings above in `.env` first. Pass `BASE_URL` (default `http://127.0.0.1:8010`), `WS_URL` (default `ws://127.0.0.1:8090`) and `REVERB_APP_KEY` (default `antre-local-key`) to k6 with `-e` if yours differ.
 
-Sizes are environment variables: `STAFF_VUS`, `WALKIN_RATE`, `TV_CLIENTS`, `CHECKIN_VUS`, `RAMP_S`, `DURATION_S` and `DRAIN_S`. Staff take the seeded accounts in order, so keep `STAFF_VUS` at or under branches x counters x 2 to get two per counter. A quick try: `RAMP_S=5 DURATION_S=15 STAFF_VUS=6 WALKIN_RATE=2 TV_CLIENTS=4 k6 run ...`.
+Sizes are environment variables: `STAFF_VUS`, `WALKIN_RATE`, `TV_CLIENTS`, `CHECKIN_VUS`, `RAMP_S`, `DURATION_S` and `DRAIN_S`. Staff take the seeded accounts in order, one VU per account, so keep `STAFF_VUS` at or under branches x counters x 2 to get two per counter. A quick try: `RAMP_S=5 DURATION_S=15 STAFF_VUS=6 WALKIN_RATE=2 TV_CLIENTS=4 k6 run ...`.
 
 ## The snapshot log
 

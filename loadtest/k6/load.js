@@ -9,7 +9,7 @@ import ws from 'k6/ws';
 import exec from 'k6/execution';
 import { check, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
-import { Session, accepted, manifest, pick, staffUsers } from './lib.js';
+import { Session, guardHost, notBounced, manifest, pick, staffUsers } from './lib.js';
 
 const num = (name, fallback) => Number(__ENV[name] || fallback);
 
@@ -26,6 +26,7 @@ const SKIP = num('SKIP', 0.1);
 const RECALL = num('RECALL', 0.1);
 
 const WS_URL = (__ENV.WS_URL || 'ws://127.0.0.1:8090').replace(/\/$/, '');
+guardHost(WS_URL);
 const REVERB_KEY = __ENV.REVERB_APP_KEY || 'antre-local-key';
 
 const LOAD_S = RAMP_S + DURATION_S;
@@ -37,14 +38,14 @@ const bookings = manifest.branches.flatMap((branch) => branch.bookings.map((refe
 export const options = {
     scenarios: {
         staff: {
-            executor: 'ramping-vus',
+            // One iteration per VU, so exec.scenario.iterationInTest (0..N-1) is a stable index that
+            // gives every VU its own account. Each VU loops inside that iteration until the load
+            // window ends and starts late by index * RAMP_S / N, which is the ramp.
+            executor: 'per-vu-iterations',
             exec: 'staff',
-            startVUs: 0,
-            stages: [
-                { duration: `${RAMP_S}s`, target: STAFF_VUS },
-                { duration: `${DURATION_S}s`, target: STAFF_VUS },
-            ],
-            gracefulRampDown: '10s',
+            vus: STAFF_VUS,
+            iterations: 1,
+            maxDuration: `${LOAD_S + 10}s`,
         },
         walkins: {
             executor: 'ramping-arrival-rate',
@@ -99,7 +100,7 @@ const deliveryMs = new Trend('tv_delivery_ms', true); // receive time minus the 
 const regressions = new Counter('tv_version_regressions'); // a snapshot older than one already received
 const sameVersion = new Counter('tv_same_version_different_content'); // the stale-display suspect
 const reconnects = new Counter('tv_reconnects');
-const staffActions = new Rate('staff_action_accepted');
+const staffActions = new Rate('staff_action_not_bounced');
 
 // Per VU: sessions by account, so a VU logs in once.
 const sessions = {};
@@ -116,26 +117,18 @@ function sessionFor(user) {
 
 function press(session, path, kind, counterId) {
     const r = session.post(path, {}, kind, `/console/counters/${counterId}`, `POST ${path.replace(/\d+/g, ':id')}`);
-    staffActions.add(accepted(r));
-    check(r, { [`${kind} accepted`]: accepted });
+    staffActions.add(notBounced(r));
+    check(r, { [`${kind} not bounced to login`]: notBounced });
 
     return r;
 }
 
-export function staff() {
-    const user = staffUsers[exec.vu.idInTest % staffUsers.length];
-    const session = sessionFor(user);
-    if (!session) {
-        sleep(5);
-
-        return;
-    }
-
+function staffRound(session, user) {
     const callPath = `/console/counters/${user.counterId}/call-next`;
     if (Math.random() < DOUBLE_CLICK) {
         // A double click: two presses at the same moment on the same session.
         const request = () => session.postRequest(callPath, {}, 'call_next', `/console/counters/${user.counterId}`, 'POST /console/counters/:id/call-next');
-        http.batch([request(), request()]).forEach((r) => staffActions.add(accepted(r)));
+        http.batch([request(), request()]).forEach((r) => staffActions.add(notBounced(r)));
     } else {
         press(session, callPath, 'call_next', user.counterId);
     }
@@ -147,6 +140,26 @@ export function staff() {
         const id = state.current.id;
         if (Math.random() < RECALL) press(session, `/console/tickets/${id}/recall`, 'recall', user.counterId);
         press(session, `/console/tickets/${id}/${Math.random() < SKIP ? 'skip' : 'done'}`, 'finish', user.counterId);
+    }
+}
+
+export function staff() {
+    // Accounts are taken in order, so with STAFF_VUS at or under the number of accounts every
+    // account is driven by exactly one VU and each counter gets two.
+    const index = exec.scenario.iterationInTest;
+    const user = staffUsers[index % staffUsers.length];
+    const endsAt = Date.now() + (LOAD_S * 1000 - exec.instance.currentTestRunDuration);
+
+    sleep((index * RAMP_S) / Math.max(1, STAFF_VUS));
+
+    const session = sessionFor(user);
+    while (Date.now() < endsAt) {
+        if (!session) {
+            sleep(5);
+            continue;
+        }
+
+        staffRound(session, user);
     }
 }
 
@@ -167,7 +180,7 @@ export function walkin() {
     if (Math.random() < CANCEL) {
         sleep(Math.random());
         const c = customer.post(`/t/${ticket[1]}/cancel`, {}, 'cancel', `/t/${ticket[1]}`, 'POST /t/:id/cancel');
-        check(c, { 'cancel accepted': accepted });
+        check(c, { 'cancel not bounced to login': notBounced });
     }
 }
 
@@ -181,7 +194,7 @@ export function checkin() {
     const one = () => session.postRequest('/console/check-in', { reference: item.reference }, 'check_in', referer, 'POST /console/check-in');
     // Some people tap twice. The second one must return the same ticket, not make another.
     const results = Math.random() < 0.3 ? http.batch([one(), one()]) : [http.request(...one())];
-    results.forEach((r) => check(r, { 'check-in accepted': accepted }));
+    results.forEach((r) => check(r, { 'check-in not bounced to login': notBounced }));
 }
 
 export function drain() {

@@ -40,6 +40,23 @@ it('ignores the load test switch in production', function () {
     ($this->take)()->assertTooManyRequests();
 });
 
+it('ignores the load test switch in demo mode', function () {
+    config([
+        'antre.loadtest.lift_walkin_limit' => true,
+        'antre.demo.enabled' => true,
+        // Out of the way, so the 429 below comes from the walk-in limit and not from public-write.
+        'antre.demo.writes_per_minute' => 1000,
+        'antre.demo.writes_per_hour' => 1000,
+        'antre.demo.global_writes_per_hour' => 1000,
+    ]);
+
+    foreach (range(1, 30) as $i) {
+        ($this->take)()->assertRedirect();
+    }
+
+    ($this->take)()->assertTooManyRequests();
+});
+
 it('keeps the switch off unless the environment variable is set', function () {
     expect(config('antre.loadtest.lift_walkin_limit'))->toBeFalse();
 });
