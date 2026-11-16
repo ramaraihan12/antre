@@ -1,0 +1,1641 @@
+{
+  "head_sha": "5d4ae5e9fc2999e2ea3d8d5e1e1062b244e5b855",
+  "note": "ubuntu-latest runner shared by k6, Apache/mod_php (no opcache), Postgres 17 and Reverb",
+  "runs": [
+    {
+      "run": "l-off-1",
+      "github_run_id": "43793959797",
+      "cell": "l-off",
+      "inputs": {
+        "branches": 25,
+        "counters_per_branch": 4,
+        "staff": 200,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 50,
+        "tv_clients": 100,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": false
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 12893,
+        "skipped": 47,
+        "cancelled": 410,
+        "called": 32,
+        "done": 1894
+      },
+      "calls": 1973,
+      "call_next_ms": {
+        "p50": 1074.13819,
+        "p95": 1675.554856,
+        "p99": 44941.701809599996
+      },
+      "walkin_p95_ms": 1714.1271339999998,
+      "error_rate": 0.03676290377922651,
+      "requests_per_s": 89.57864914044815,
+      "requests": 20401,
+      "checks_pass_rate": 0.9711100455526253,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": "n/a",
+      "tv_snapshots": "n/a",
+      "tv_version_regressions": "n/a",
+      "tv_same_version_different_content": "n/a",
+      "pg": {
+        "peak_connections": 99,
+        "peak_active": 7,
+        "peak_waiting_on_lock": 2,
+        "samples": 102
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 3440,
+          "total_ms": 75981.8,
+          "mean_ms": 22.09,
+          "max_ms": 411.7,
+          "rows": 3440,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 2711,
+          "total_ms": 9297.9,
+          "mean_ms": 3.43,
+          "max_ms": 246.3,
+          "rows": 2711,
+          "query": "select * from \"services\" where \"services\".\"id\" = $1 limit $2 for update"
+        },
+        {
+          "calls": 6435,
+          "total_ms": 7708.3,
+          "mean_ms": 1.2,
+          "max_ms": 33.8,
+          "rows": 222557,
+          "query": "select * from \"bookings\" where \"branch_id\" = $1 and \"status\" = $2 and \"bookings\".\"business_id\" = $3 order by \"starts_at\" asc"
+        },
+        {
+          "calls": 3380,
+          "total_ms": 6884.0,
+          "mean_ms": 2.04,
+          "max_ms": 140.6,
+          "rows": 3380,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 6435,
+          "total_ms": 5807.7,
+          "mean_ms": 0.9,
+          "max_ms": 46.4,
+          "rows": 51480,
+          "query": "select * from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5, $6) and \"tickets\"."
+        }
+      ]
+    },
+    {
+      "run": "l-off-2",
+      "github_run_id": "43794564774",
+      "cell": "l-off",
+      "inputs": {
+        "branches": 25,
+        "counters_per_branch": 4,
+        "staff": 200,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 50,
+        "tv_clients": 100,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": false
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 11182,
+        "skipped": 131,
+        "cancelled": 565,
+        "called": 26,
+        "done": 4239
+      },
+      "calls": 4396,
+      "call_next_ms": {
+        "p50": 534.6019699999999,
+        "p95": 909.8470439999998,
+        "p99": 44787.26937931
+      },
+      "walkin_p95_ms": 357.32784139999995,
+      "error_rate": 0.005462666747147945,
+      "requests_per_s": 151.54743272038928,
+      "requests": 33134,
+      "checks_pass_rate": 0.996412240590925,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": "n/a",
+      "tv_snapshots": "n/a",
+      "tv_version_regressions": "n/a",
+      "tv_same_version_different_content": "n/a",
+      "pg": {
+        "peak_connections": 100,
+        "peak_active": 7,
+        "peak_waiting_on_lock": 3,
+        "samples": 104
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 6608,
+          "total_ms": 42210.9,
+          "mean_ms": 6.39,
+          "max_ms": 222.9,
+          "rows": 6608,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 11393,
+          "total_ms": 14375.5,
+          "mean_ms": 1.26,
+          "max_ms": 19.9,
+          "rows": 11393,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 11393,
+          "total_ms": 5285.3,
+          "mean_ms": 0.46,
+          "max_ms": 33.2,
+          "rows": 340419,
+          "query": "select * from \"bookings\" where \"branch_id\" = $1 and \"status\" = $2 and \"bookings\".\"business_id\" = $3 order by \"starts_at\" asc"
+        },
+        {
+          "calls": 11393,
+          "total_ms": 5117.4,
+          "mean_ms": 0.45,
+          "max_ms": 34.2,
+          "rows": 91144,
+          "query": "select * from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5, $6) and \"tickets\"."
+        },
+        {
+          "calls": 6417,
+          "total_ms": 3940.8,
+          "mean_ms": 0.61,
+          "max_ms": 100.4,
+          "rows": 6417,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        }
+      ]
+    },
+    {
+      "run": "l-off-3",
+      "github_run_id": "43795672528",
+      "cell": "l-off",
+      "inputs": {
+        "branches": 25,
+        "counters_per_branch": 4,
+        "staff": 200,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 50,
+        "tv_clients": 100,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": false
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 12733,
+        "skipped": 37,
+        "cancelled": 408,
+        "called": 31,
+        "done": 2280
+      },
+      "calls": 2348,
+      "call_next_ms": {
+        "p50": 969.823067,
+        "p95": 1551.457717,
+        "p99": 51724.211732549964
+      },
+      "walkin_p95_ms": 1487.35112765,
+      "error_rate": 0.031155115511551156,
+      "requests_per_s": 99.61590732925318,
+      "requests": 22725,
+      "checks_pass_rate": 0.9746666666666667,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": "n/a",
+      "tv_snapshots": "n/a",
+      "tv_version_regressions": "n/a",
+      "tv_same_version_different_content": "n/a",
+      "pg": {
+        "peak_connections": 99,
+        "peak_active": 7,
+        "peak_waiting_on_lock": 6,
+        "samples": 105
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 3959,
+          "total_ms": 92092.4,
+          "mean_ms": 23.26,
+          "max_ms": 412.5,
+          "rows": 3959,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 2909,
+          "total_ms": 9394.5,
+          "mean_ms": 3.23,
+          "max_ms": 206.4,
+          "rows": 2909,
+          "query": "select * from \"services\" where \"services\".\"id\" = $1 limit $2 for update"
+        },
+        {
+          "calls": 7367,
+          "total_ms": 7377.2,
+          "mean_ms": 1.0,
+          "max_ms": 41.8,
+          "rows": 248549,
+          "query": "select * from \"bookings\" where \"branch_id\" = $1 and \"status\" = $2 and \"bookings\".\"business_id\" = $3 order by \"starts_at\" asc"
+        },
+        {
+          "calls": 7367,
+          "total_ms": 6878.5,
+          "mean_ms": 0.93,
+          "max_ms": 39.4,
+          "rows": 7367,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 3851,
+          "total_ms": 6788.8,
+          "mean_ms": 1.76,
+          "max_ms": 224.9,
+          "rows": 3851,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        }
+      ]
+    },
+    {
+      "run": "l-on-1",
+      "github_run_id": "43793947833",
+      "cell": "l-on",
+      "inputs": {
+        "branches": 25,
+        "counters_per_branch": 4,
+        "staff": 200,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 50,
+        "tv_clients": 100,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": true
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 12595,
+        "skipped": 55,
+        "cancelled": 441,
+        "called": 47,
+        "done": 2378
+      },
+      "calls": 2480,
+      "call_next_ms": {
+        "p50": 1127.4280405,
+        "p95": 1767.6136298499996,
+        "p99": 49996.74875177975
+      },
+      "walkin_p95_ms": 1552.332496,
+      "error_rate": 0.05641205325858444,
+      "requests_per_s": 99.6056024157572,
+      "requests": 22832,
+      "checks_pass_rate": 0.9400627559432005,
+      "k6_thresholds_failed": [
+        "checks",
+        "http_req_failed"
+      ],
+      "tv_delivery_p95_ms": 61,
+      "tv_snapshots": 18336,
+      "tv_version_regressions": 193,
+      "tv_same_version_different_content": 3,
+      "pg": {
+        "peak_connections": 100,
+        "peak_active": 20,
+        "peak_waiting_on_lock": 3,
+        "samples": 105
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 3787,
+          "total_ms": 55396.9,
+          "mean_ms": 14.63,
+          "max_ms": 429.7,
+          "rows": 3787,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 7662,
+          "total_ms": 11402.3,
+          "mean_ms": 1.49,
+          "max_ms": 43.8,
+          "rows": 7662,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 2920,
+          "total_ms": 8500.1,
+          "mean_ms": 2.91,
+          "max_ms": 316.8,
+          "rows": 2920,
+          "query": "select * from \"services\" where \"services\".\"id\" = $1 limit $2 for update"
+        },
+        {
+          "calls": 7662,
+          "total_ms": 8454.4,
+          "mean_ms": 1.1,
+          "max_ms": 51.9,
+          "rows": 253378,
+          "query": "select * from \"bookings\" where \"branch_id\" = $1 and \"status\" = $2 and \"bookings\".\"business_id\" = $3 order by \"starts_at\" asc"
+        },
+        {
+          "calls": 7662,
+          "total_ms": 6050.4,
+          "mean_ms": 0.79,
+          "max_ms": 27.9,
+          "rows": 61296,
+          "query": "select * from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5, $6) and \"tickets\"."
+        }
+      ]
+    },
+    {
+      "run": "l-on-2",
+      "github_run_id": "43794551828",
+      "cell": "l-on",
+      "inputs": {
+        "branches": 25,
+        "counters_per_branch": 4,
+        "staff": 200,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 50,
+        "tv_clients": 100,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": true
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 12400,
+        "skipped": 67,
+        "cancelled": 549,
+        "called": 32,
+        "done": 3063
+      },
+      "calls": 3162,
+      "call_next_ms": {
+        "p50": 775.640879,
+        "p95": 1190.2154888,
+        "p99": 49795.23613167989
+      },
+      "walkin_p95_ms": 908.0920808999998,
+      "error_rate": 0.011650700891371085,
+      "requests_per_s": 123.11216955000792,
+      "requests": 27037,
+      "checks_pass_rate": 0.9930484835067522,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": 41,
+      "tv_snapshots": 24432,
+      "tv_version_regressions": 220,
+      "tv_same_version_different_content": 0,
+      "pg": {
+        "peak_connections": 94,
+        "peak_active": 5,
+        "peak_waiting_on_lock": 2,
+        "samples": 103
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 4885,
+          "total_ms": 49585.2,
+          "mean_ms": 10.15,
+          "max_ms": 368.4,
+          "rows": 4885,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 8730,
+          "total_ms": 7314.6,
+          "mean_ms": 0.84,
+          "max_ms": 15.9,
+          "rows": 8730,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 8730,
+          "total_ms": 6068.0,
+          "mean_ms": 0.7,
+          "max_ms": 22.1,
+          "rows": 294107,
+          "query": "select * from \"bookings\" where \"branch_id\" = $1 and \"status\" = $2 and \"bookings\".\"business_id\" = $3 order by \"starts_at\" asc"
+        },
+        {
+          "calls": 8730,
+          "total_ms": 4864.6,
+          "mean_ms": 0.56,
+          "max_ms": 28.3,
+          "rows": 69840,
+          "query": "select * from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5, $6) and \"tickets\"."
+        },
+        {
+          "calls": 4769,
+          "total_ms": 4016.3,
+          "mean_ms": 0.84,
+          "max_ms": 113.9,
+          "rows": 4769,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        }
+      ]
+    },
+    {
+      "run": "l-on-3",
+      "github_run_id": "43795660961",
+      "cell": "l-on",
+      "inputs": {
+        "branches": 25,
+        "counters_per_branch": 4,
+        "staff": 200,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 50,
+        "tv_clients": 100,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": true
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 12775,
+        "skipped": 47,
+        "cancelled": 349,
+        "called": 33,
+        "done": 1883
+      },
+      "calls": 1963,
+      "call_next_ms": {
+        "p50": 1152.8304174999998,
+        "p95": 1901.0473943999996,
+        "p99": 49922.71164505
+      },
+      "walkin_p95_ms": 1973.8640382000008,
+      "error_rate": 0.04441578540108331,
+      "requests_per_s": 85.27885236820373,
+      "requests": 19385,
+      "checks_pass_rate": 0.9646178984414279,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": 81,
+      "tv_snapshots": 14942,
+      "tv_version_regressions": 207,
+      "tv_same_version_different_content": 3,
+      "pg": {
+        "peak_connections": 100,
+        "peak_active": 7,
+        "peak_waiting_on_lock": 3,
+        "samples": 104
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 3282,
+          "total_ms": 64328.7,
+          "mean_ms": 19.6,
+          "max_ms": 459.7,
+          "rows": 3282,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 2492,
+          "total_ms": 7876.7,
+          "mean_ms": 3.16,
+          "max_ms": 329.7,
+          "rows": 2492,
+          "query": "select * from \"services\" where \"services\".\"id\" = $1 limit $2 for update"
+        },
+        {
+          "calls": 6210,
+          "total_ms": 6731.2,
+          "mean_ms": 1.08,
+          "max_ms": 51.4,
+          "rows": 198842,
+          "query": "select * from \"bookings\" where \"branch_id\" = $1 and \"status\" = $2 and \"bookings\".\"business_id\" = $3 order by \"starts_at\" asc"
+        },
+        {
+          "calls": 6210,
+          "total_ms": 5592.0,
+          "mean_ms": 0.9,
+          "max_ms": 41.7,
+          "rows": 49680,
+          "query": "select * from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5, $6) and \"tickets\"."
+        },
+        {
+          "calls": 6210,
+          "total_ms": 5043.6,
+          "mean_ms": 0.81,
+          "max_ms": 39.6,
+          "rows": 6210,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        }
+      ]
+    },
+    {
+      "run": "m-off-1",
+      "github_run_id": "43793414824",
+      "cell": "m-off",
+      "inputs": {
+        "branches": 10,
+        "counters_per_branch": 4,
+        "staff": 80,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 20,
+        "tv_clients": 40,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": false
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 2186,
+        "skipped": 180,
+        "cancelled": 205,
+        "called": 18,
+        "done": 4109
+      },
+      "calls": 4307,
+      "call_next_ms": {
+        "p50": 409.1825835,
+        "p95": 680.47116425,
+        "p99": 3239.5569143500006
+      },
+      "walkin_p95_ms": 412.50502449999993,
+      "error_rate": 0,
+      "requests_per_s": 157.44710707509012,
+      "requests": 33990,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": "n/a",
+      "tv_snapshots": "n/a",
+      "tv_version_regressions": "n/a",
+      "tv_same_version_different_content": "n/a",
+      "pg": {
+        "peak_connections": 82,
+        "peak_active": 8,
+        "peak_waiting_on_lock": 4,
+        "samples": 102
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 8566,
+          "total_ms": 71724.8,
+          "mean_ms": 8.37,
+          "max_ms": 185.5,
+          "rows": 8566,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 13309,
+          "total_ms": 8466.2,
+          "mean_ms": 0.64,
+          "max_ms": 21.5,
+          "rows": 13309,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 8224,
+          "total_ms": 5198.9,
+          "mean_ms": 0.63,
+          "max_ms": 74.0,
+          "rows": 8224,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 13309,
+          "total_ms": 3780.4,
+          "mean_ms": 0.28,
+          "max_ms": 27.0,
+          "rows": 13309,
+          "query": "select count(*) as aggregate from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5"
+        },
+        {
+          "calls": 13309,
+          "total_ms": 3400.5,
+          "mean_ms": 0.26,
+          "max_ms": 16.9,
+          "rows": 39927,
+          "query": "select \"services\".\"id\", \"services\".\"code\", \"services\".\"name\", \"counter_service\".\"counter_id\" as \"pivot_counter_id\", \"counter_service\".\"servi"
+        }
+      ]
+    },
+    {
+      "run": "m-off-2",
+      "github_run_id": "43794538239",
+      "cell": "m-off",
+      "inputs": {
+        "branches": 10,
+        "counters_per_branch": 4,
+        "staff": 80,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 20,
+        "tv_clients": 40,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": false
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 2538,
+        "skipped": 160,
+        "called": 21,
+        "cancelled": 204,
+        "done": 3758
+      },
+      "calls": 3939,
+      "call_next_ms": {
+        "p50": 450.086817,
+        "p95": 721.3046188,
+        "p99": 3156.796960239998
+      },
+      "walkin_p95_ms": 483.7353087999997,
+      "error_rate": 0,
+      "requests_per_s": 148.05297505309966,
+      "requests": 31907,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": "n/a",
+      "tv_snapshots": "n/a",
+      "tv_version_regressions": "n/a",
+      "tv_same_version_different_content": "n/a",
+      "pg": {
+        "peak_connections": 82,
+        "peak_active": 9,
+        "peak_waiting_on_lock": 4,
+        "samples": 102
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 7977,
+          "total_ms": 84972.5,
+          "mean_ms": 10.65,
+          "max_ms": 255.3,
+          "rows": 7977,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 12426,
+          "total_ms": 7884.3,
+          "mean_ms": 0.63,
+          "max_ms": 13.0,
+          "rows": 12426,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 7664,
+          "total_ms": 7688.4,
+          "mean_ms": 1.0,
+          "max_ms": 87.9,
+          "rows": 7664,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 12426,
+          "total_ms": 3784.0,
+          "mean_ms": 0.3,
+          "max_ms": 8.4,
+          "rows": 12426,
+          "query": "select count(*) as aggregate from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5"
+        },
+        {
+          "calls": 12426,
+          "total_ms": 3250.0,
+          "mean_ms": 0.26,
+          "max_ms": 8.8,
+          "rows": 37278,
+          "query": "select \"services\".\"id\", \"services\".\"code\", \"services\".\"name\", \"counter_service\".\"counter_id\" as \"pivot_counter_id\", \"counter_service\".\"servi"
+        }
+      ]
+    },
+    {
+      "run": "m-off-3",
+      "github_run_id": "43795143186",
+      "cell": "m-off",
+      "inputs": {
+        "branches": 10,
+        "counters_per_branch": 4,
+        "staff": 80,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 20,
+        "tv_clients": 40,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": false
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 2788,
+        "skipped": 136,
+        "cancelled": 218,
+        "called": 18,
+        "done": 3527
+      },
+      "calls": 3681,
+      "call_next_ms": {
+        "p50": 494.37953849999997,
+        "p95": 770.6370377999996,
+        "p99": 3039.8946108599985
+      },
+      "walkin_p95_ms": 563.7504275999997,
+      "error_rate": 0,
+      "requests_per_s": 139.94235316519413,
+      "requests": 30318,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": "n/a",
+      "tv_snapshots": "n/a",
+      "tv_version_regressions": "n/a",
+      "tv_same_version_different_content": "n/a",
+      "pg": {
+        "peak_connections": 82,
+        "peak_active": 11,
+        "peak_waiting_on_lock": 3,
+        "samples": 102
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 7470,
+          "total_ms": 103184.1,
+          "mean_ms": 13.81,
+          "max_ms": 257.2,
+          "rows": 7470,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 7245,
+          "total_ms": 8827.5,
+          "mean_ms": 1.22,
+          "max_ms": 175.1,
+          "rows": 7245,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 11748,
+          "total_ms": 7554.1,
+          "mean_ms": 0.64,
+          "max_ms": 33.7,
+          "rows": 11748,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 11748,
+          "total_ms": 3532.3,
+          "mean_ms": 0.3,
+          "max_ms": 29.7,
+          "rows": 11748,
+          "query": "select count(*) as aggregate from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5"
+        },
+        {
+          "calls": 11748,
+          "total_ms": 3069.2,
+          "mean_ms": 0.26,
+          "max_ms": 13.3,
+          "rows": 35244,
+          "query": "select \"services\".\"id\", \"services\".\"code\", \"services\".\"name\", \"counter_service\".\"counter_id\" as \"pivot_counter_id\", \"counter_service\".\"servi"
+        }
+      ]
+    },
+    {
+      "run": "m-on-1",
+      "github_run_id": "43793403960",
+      "cell": "m-on",
+      "inputs": {
+        "branches": 10,
+        "counters_per_branch": 4,
+        "staff": 80,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 20,
+        "tv_clients": 40,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": true
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 2974,
+        "skipped": 115,
+        "called": 22,
+        "cancelled": 192,
+        "done": 3363
+      },
+      "calls": 3500,
+      "call_next_ms": {
+        "p50": 529.392275,
+        "p95": 859.0852166,
+        "p99": 3008.0105269600103
+      },
+      "walkin_p95_ms": 636.8325719999999,
+      "error_rate": 0,
+      "requests_per_s": 134.29516466187812,
+      "requests": 29004,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": 33,
+      "tv_snapshots": 28283,
+      "tv_version_regressions": 372,
+      "tv_same_version_different_content": 12,
+      "pg": {
+        "peak_connections": 82,
+        "peak_active": 5,
+        "peak_waiting_on_lock": 3,
+        "samples": 102
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 7137,
+          "total_ms": 86091.7,
+          "mean_ms": 12.06,
+          "max_ms": 233.7,
+          "rows": 7137,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 11158,
+          "total_ms": 7651.4,
+          "mean_ms": 0.69,
+          "max_ms": 10.2,
+          "rows": 11158,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 6894,
+          "total_ms": 5759.2,
+          "mean_ms": 0.84,
+          "max_ms": 71.5,
+          "rows": 6894,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 11158,
+          "total_ms": 3648.5,
+          "mean_ms": 0.33,
+          "max_ms": 7.3,
+          "rows": 11158,
+          "query": "select count(*) as aggregate from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5"
+        },
+        {
+          "calls": 11158,
+          "total_ms": 2983.8,
+          "mean_ms": 0.27,
+          "max_ms": 11.6,
+          "rows": 33474,
+          "query": "select \"services\".\"id\", \"services\".\"code\", \"services\".\"name\", \"counter_service\".\"counter_id\" as \"pivot_counter_id\", \"counter_service\".\"servi"
+        }
+      ]
+    },
+    {
+      "run": "m-on-2",
+      "github_run_id": "43794524891",
+      "cell": "m-on",
+      "inputs": {
+        "branches": 10,
+        "counters_per_branch": 4,
+        "staff": 80,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 20,
+        "tv_clients": 40,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": true
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 2684,
+        "skipped": 107,
+        "called": 18,
+        "cancelled": 204,
+        "done": 3658
+      },
+      "calls": 3783,
+      "call_next_ms": {
+        "p50": 495.149718,
+        "p95": 791.5127913999999,
+        "p99": 2999.6014455600034
+      },
+      "walkin_p95_ms": 581.4065636,
+      "error_rate": 0,
+      "requests_per_s": 142.40943525137632,
+      "requests": 30812,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": 29,
+      "tv_snapshots": 30252,
+      "tv_version_regressions": 368,
+      "tv_same_version_different_content": 35,
+      "pg": {
+        "peak_connections": 82,
+        "peak_active": 5,
+        "peak_waiting_on_lock": 2,
+        "samples": 103
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 7617,
+          "total_ms": 78579.1,
+          "mean_ms": 10.32,
+          "max_ms": 226.8,
+          "rows": 7617,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 11988,
+          "total_ms": 7626.3,
+          "mean_ms": 0.64,
+          "max_ms": 19.4,
+          "rows": 11988,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 7375,
+          "total_ms": 6428.8,
+          "mean_ms": 0.87,
+          "max_ms": 77.8,
+          "rows": 7375,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 11988,
+          "total_ms": 3605.7,
+          "mean_ms": 0.3,
+          "max_ms": 7.7,
+          "rows": 11988,
+          "query": "select count(*) as aggregate from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5"
+        },
+        {
+          "calls": 11988,
+          "total_ms": 3117.1,
+          "mean_ms": 0.26,
+          "max_ms": 7.5,
+          "rows": 35964,
+          "query": "select \"services\".\"id\", \"services\".\"code\", \"services\".\"name\", \"counter_service\".\"counter_id\" as \"pivot_counter_id\", \"counter_service\".\"servi"
+        }
+      ]
+    },
+    {
+      "run": "m-on-3",
+      "github_run_id": "43795130914",
+      "cell": "m-on",
+      "inputs": {
+        "branches": 10,
+        "counters_per_branch": 4,
+        "staff": 80,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 20,
+        "tv_clients": 40,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": true
+      },
+      "checker_pass": false,
+      "checker_failed": [
+        "nothing is left waiting or called (the run drained the queue)"
+      ],
+      "tickets": {
+        "waiting": 2621,
+        "skipped": 145,
+        "called": 18,
+        "cancelled": 212,
+        "done": 3690
+      },
+      "calls": 3853,
+      "call_next_ms": {
+        "p50": 478.296028,
+        "p95": 761.1446385999999,
+        "p99": 2751.1433498399997
+      },
+      "walkin_p95_ms": 582.6393205999999,
+      "error_rate": 3.175107159866646e-05,
+      "requests_per_s": 145.53057159533668,
+      "requests": 31495,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": 27,
+      "tv_snapshots": 31047,
+      "tv_version_regressions": 392,
+      "tv_same_version_different_content": 22,
+      "pg": {
+        "peak_connections": 82,
+        "peak_active": 6,
+        "peak_waiting_on_lock": 2,
+        "samples": 103
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 7796,
+          "total_ms": 73323.2,
+          "mean_ms": 9.41,
+          "max_ms": 235.3,
+          "rows": 7796,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 12284,
+          "total_ms": 7566.7,
+          "mean_ms": 0.62,
+          "max_ms": 11.3,
+          "rows": 12284,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 7561,
+          "total_ms": 5481.4,
+          "mean_ms": 0.72,
+          "max_ms": 92.7,
+          "rows": 7561,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 12284,
+          "total_ms": 3649.4,
+          "mean_ms": 0.3,
+          "max_ms": 13.7,
+          "rows": 12284,
+          "query": "select count(*) as aggregate from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5"
+        },
+        {
+          "calls": 12284,
+          "total_ms": 3196.6,
+          "mean_ms": 0.26,
+          "max_ms": 12.6,
+          "rows": 36852,
+          "query": "select \"services\".\"id\", \"services\".\"code\", \"services\".\"name\", \"counter_service\".\"counter_id\" as \"pivot_counter_id\", \"counter_service\".\"servi"
+        }
+      ]
+    },
+    {
+      "run": "s-off-1",
+      "github_run_id": "43793393126",
+      "cell": "s-off",
+      "inputs": {
+        "branches": 2,
+        "counters_per_branch": 4,
+        "staff": 16,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 5,
+        "tv_clients": 10,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": false
+      },
+      "checker_pass": true,
+      "checker_failed": [],
+      "tickets": {
+        "skipped": 92,
+        "cancelled": 51,
+        "done": 1297
+      },
+      "calls": 1389,
+      "call_next_ms": {
+        "p50": 22.127485,
+        "p95": 113.03550860000001,
+        "p99": 135.19021491999993
+      },
+      "walkin_p95_ms": 23.309669550000002,
+      "error_rate": 0,
+      "requests_per_s": 47.46558091382129,
+      "requests": 10206,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": "n/a",
+      "tv_snapshots": "n/a",
+      "tv_version_regressions": "n/a",
+      "tv_same_version_different_content": "n/a",
+      "pg": {
+        "peak_connections": 18,
+        "peak_active": 3,
+        "peak_waiting_on_lock": 1,
+        "samples": 104
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 2883,
+          "total_ms": 3601.5,
+          "mean_ms": 1.25,
+          "max_ms": 53.7,
+          "rows": 2883,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 1486,
+          "total_ms": 760.2,
+          "mean_ms": 0.51,
+          "max_ms": 16.6,
+          "rows": 1486,
+          "query": "insert into \"ticket_calls\" (\"business_id\", \"branch_id\", \"ticket_id\", \"counter_id\", \"kind\", \"created_at\") values ($1, $2, $3, $4, $5, $6) ret"
+        },
+        {
+          "calls": 3593,
+          "total_ms": 517.5,
+          "mean_ms": 0.14,
+          "max_ms": 6.5,
+          "rows": 3593,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 1389,
+          "total_ms": 371.8,
+          "mean_ms": 0.27,
+          "max_ms": 3.1,
+          "rows": 1389,
+          "query": "update \"tickets\" set \"counter_id\" = $1, \"status\" = $2, \"call_count\" = $3, \"called_at\" = $4, \"updated_at\" = $5 where \"id\" = $6"
+        },
+        {
+          "calls": 3593,
+          "total_ms": 371.0,
+          "mean_ms": 0.1,
+          "max_ms": 12.1,
+          "rows": 3593,
+          "query": "select count(*) as aggregate from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5"
+        }
+      ]
+    },
+    {
+      "run": "s-off-2",
+      "github_run_id": "43793984064",
+      "cell": "s-off",
+      "inputs": {
+        "branches": 2,
+        "counters_per_branch": 4,
+        "staff": 16,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 5,
+        "tv_clients": 10,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": false
+      },
+      "checker_pass": true,
+      "checker_failed": [],
+      "tickets": {
+        "skipped": 77,
+        "cancelled": 55,
+        "done": 1307
+      },
+      "calls": 1384,
+      "call_next_ms": {
+        "p50": 34.130757,
+        "p95": 167.1338494,
+        "p99": 252.5758194
+      },
+      "walkin_p95_ms": 97.02423529999972,
+      "error_rate": 0,
+      "requests_per_s": 47.97286184988546,
+      "requests": 10315,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": "n/a",
+      "tv_snapshots": "n/a",
+      "tv_version_regressions": "n/a",
+      "tv_same_version_different_content": "n/a",
+      "pg": {
+        "peak_connections": 18,
+        "peak_active": 17,
+        "peak_waiting_on_lock": 1,
+        "samples": 103
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 2893,
+          "total_ms": 7225.3,
+          "mean_ms": 2.5,
+          "max_ms": 203.7,
+          "rows": 2893,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 2752,
+          "total_ms": 2503.9,
+          "mean_ms": 0.91,
+          "max_ms": 173.8,
+          "rows": 2752,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 1468,
+          "total_ms": 1072.3,
+          "mean_ms": 0.73,
+          "max_ms": 24.7,
+          "rows": 1468,
+          "query": "insert into \"ticket_calls\" (\"business_id\", \"branch_id\", \"ticket_id\", \"counter_id\", \"kind\", \"created_at\") values ($1, $2, $3, $4, $5, $6) ret"
+        },
+        {
+          "calls": 10225,
+          "total_ms": 980.2,
+          "mean_ms": 0.1,
+          "max_ms": 152.8,
+          "rows": 10225,
+          "query": "update \"sessions\" set \"payload\" = $1, \"last_activity\" = $2, \"user_id\" = $3, \"ip_address\" = $4, \"user_agent\" = $5 where \"id\" = $6"
+        },
+        {
+          "calls": 3704,
+          "total_ms": 782.1,
+          "mean_ms": 0.21,
+          "max_ms": 15.6,
+          "rows": 3704,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        }
+      ]
+    },
+    {
+      "run": "s-off-3",
+      "github_run_id": "43795118864",
+      "cell": "s-off",
+      "inputs": {
+        "branches": 2,
+        "counters_per_branch": 4,
+        "staff": 16,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 5,
+        "tv_clients": 10,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": false
+      },
+      "checker_pass": true,
+      "checker_failed": [],
+      "tickets": {
+        "skipped": 90,
+        "cancelled": 51,
+        "done": 1298
+      },
+      "calls": 1388,
+      "call_next_ms": {
+        "p50": 34.610395999999994,
+        "p95": 145.65119525,
+        "p99": 177.56919864999998
+      },
+      "walkin_p95_ms": 57.59222419999999,
+      "error_rate": 0,
+      "requests_per_s": 47.783831017886136,
+      "requests": 10275,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": "n/a",
+      "tv_snapshots": "n/a",
+      "tv_version_regressions": "n/a",
+      "tv_same_version_different_content": "n/a",
+      "pg": {
+        "peak_connections": 18,
+        "peak_active": 6,
+        "peak_waiting_on_lock": 1,
+        "samples": 103
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 2866,
+          "total_ms": 6003.3,
+          "mean_ms": 2.09,
+          "max_ms": 93.3,
+          "rows": 2866,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 1484,
+          "total_ms": 1028.2,
+          "mean_ms": 0.69,
+          "max_ms": 10.1,
+          "rows": 1484,
+          "query": "insert into \"ticket_calls\" (\"business_id\", \"branch_id\", \"ticket_id\", \"counter_id\", \"kind\", \"created_at\") values ($1, $2, $3, $4, $5, $6) ret"
+        },
+        {
+          "calls": 10185,
+          "total_ms": 929.0,
+          "mean_ms": 0.09,
+          "max_ms": 102.5,
+          "rows": 10185,
+          "query": "update \"sessions\" set \"payload\" = $1, \"last_activity\" = $2, \"user_id\" = $3, \"ip_address\" = $4, \"user_agent\" = $5 where \"id\" = $6"
+        },
+        {
+          "calls": 3683,
+          "total_ms": 759.9,
+          "mean_ms": 0.21,
+          "max_ms": 5.4,
+          "rows": 3683,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 2759,
+          "total_ms": 718.6,
+          "mean_ms": 0.26,
+          "max_ms": 81.2,
+          "rows": 2759,
+          "query": "select * from \"tickets\" where \"tickets\".\"id\" = $1 and \"tickets\".\"business_id\" = $2 limit $3 for update"
+        }
+      ]
+    },
+    {
+      "run": "s-on-1",
+      "github_run_id": "43793378481",
+      "cell": "s-on",
+      "inputs": {
+        "branches": 2,
+        "counters_per_branch": 4,
+        "staff": 16,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 5,
+        "tv_clients": 10,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": true
+      },
+      "checker_pass": true,
+      "checker_failed": [],
+      "tickets": {
+        "skipped": 86,
+        "cancelled": 55,
+        "done": 1299
+      },
+      "calls": 1385,
+      "call_next_ms": {
+        "p50": 49.944877,
+        "p95": 188.6988815,
+        "p99": 230.26143310000003
+      },
+      "walkin_p95_ms": 65.35393840000002,
+      "error_rate": 0,
+      "requests_per_s": 47.85917920030562,
+      "requests": 10291,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": 9,
+      "tv_snapshots": 14225,
+      "tv_version_regressions": 110,
+      "tv_same_version_different_content": 20,
+      "pg": {
+        "peak_connections": 18,
+        "peak_active": 4,
+        "peak_waiting_on_lock": 2,
+        "samples": 102
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 2871,
+          "total_ms": 5789.0,
+          "mean_ms": 2.02,
+          "max_ms": 225.8,
+          "rows": 2871,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 1460,
+          "total_ms": 1128.7,
+          "mean_ms": 0.77,
+          "max_ms": 37.3,
+          "rows": 1460,
+          "query": "insert into \"ticket_calls\" (\"business_id\", \"branch_id\", \"ticket_id\", \"counter_id\", \"kind\", \"created_at\") values ($1, $2, $3, $4, $5, $6) ret"
+        },
+        {
+          "calls": 3709,
+          "total_ms": 926.2,
+          "mean_ms": 0.25,
+          "max_ms": 13.2,
+          "rows": 3709,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 3709,
+          "total_ms": 619.0,
+          "mean_ms": 0.17,
+          "max_ms": 6.7,
+          "rows": 3709,
+          "query": "select count(*) as aggregate from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5"
+        },
+        {
+          "calls": 10201,
+          "total_ms": 605.3,
+          "mean_ms": 0.06,
+          "max_ms": 108.5,
+          "rows": 10201,
+          "query": "update \"sessions\" set \"payload\" = $1, \"last_activity\" = $2, \"user_id\" = $3, \"ip_address\" = $4, \"user_agent\" = $5 where \"id\" = $6"
+        }
+      ]
+    },
+    {
+      "run": "s-on-2",
+      "github_run_id": "43793972509",
+      "cell": "s-on",
+      "inputs": {
+        "branches": 2,
+        "counters_per_branch": 4,
+        "staff": 16,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 5,
+        "tv_clients": 10,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": true
+      },
+      "checker_pass": true,
+      "checker_failed": [],
+      "tickets": {
+        "skipped": 88,
+        "cancelled": 45,
+        "done": 1307
+      },
+      "calls": 1395,
+      "call_next_ms": {
+        "p50": 25.2241885,
+        "p95": 134.84689799999995,
+        "p99": 161.18882582
+      },
+      "walkin_p95_ms": 30.1368454,
+      "error_rate": 0,
+      "requests_per_s": 47.4974415089569,
+      "requests": 10213,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": 7,
+      "tv_snapshots": 14370,
+      "tv_version_regressions": 85,
+      "tv_same_version_different_content": 25,
+      "pg": {
+        "peak_connections": 18,
+        "peak_active": 4,
+        "peak_waiting_on_lock": 2,
+        "samples": 104
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 2882,
+          "total_ms": 3534.4,
+          "mean_ms": 1.23,
+          "max_ms": 53.0,
+          "rows": 2882,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 1479,
+          "total_ms": 749.3,
+          "mean_ms": 0.51,
+          "max_ms": 9.8,
+          "rows": 1479,
+          "query": "insert into \"ticket_calls\" (\"business_id\", \"branch_id\", \"ticket_id\", \"counter_id\", \"kind\", \"created_at\") values ($1, $2, $3, $4, $5, $6) ret"
+        },
+        {
+          "calls": 3617,
+          "total_ms": 589.3,
+          "mean_ms": 0.16,
+          "max_ms": 15.3,
+          "rows": 3617,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 1395,
+          "total_ms": 377.3,
+          "mean_ms": 0.27,
+          "max_ms": 4.2,
+          "rows": 1395,
+          "query": "update \"tickets\" set \"counter_id\" = $1, \"status\" = $2, \"call_count\" = $3, \"called_at\" = $4, \"updated_at\" = $5 where \"id\" = $6"
+        },
+        {
+          "calls": 3617,
+          "total_ms": 335.3,
+          "mean_ms": 0.09,
+          "max_ms": 2.4,
+          "rows": 3617,
+          "query": "select count(*) as aggregate from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5"
+        }
+      ]
+    },
+    {
+      "run": "s-on-3",
+      "github_run_id": "43795106369",
+      "cell": "s-on",
+      "inputs": {
+        "branches": 2,
+        "counters_per_branch": 4,
+        "staff": 16,
+        "tickets_per_branch": 500,
+        "walkins_per_second": 5,
+        "tv_clients": 10,
+        "ramp_seconds": 20,
+        "duration_seconds": 60,
+        "drain_seconds": 120,
+        "broadcasting": true
+      },
+      "checker_pass": true,
+      "checker_failed": [],
+      "tickets": {
+        "skipped": 102,
+        "cancelled": 54,
+        "done": 1283
+      },
+      "calls": 1385,
+      "call_next_ms": {
+        "p50": 64.6760825,
+        "p95": 217.3558407499999,
+        "p99": 259.8353007
+      },
+      "walkin_p95_ms": 80.3715652,
+      "error_rate": 0,
+      "requests_per_s": 48.62552551165195,
+      "requests": 10456,
+      "checks_pass_rate": 1,
+      "k6_thresholds_failed": [],
+      "tv_delivery_p95_ms": 11,
+      "tv_snapshots": 14340,
+      "tv_version_regressions": 155,
+      "tv_same_version_different_content": 15,
+      "pg": {
+        "peak_connections": 17,
+        "peak_active": 4,
+        "peak_waiting_on_lock": 1,
+        "samples": 101
+      },
+      "top5_statements_by_total_time": [
+        {
+          "calls": 2880,
+          "total_ms": 6849.6,
+          "mean_ms": 2.38,
+          "max_ms": 72.5,
+          "rows": 2880,
+          "query": "select * from \"counters\" where \"counters\".\"id\" = $1 and \"counters\".\"business_id\" = $2 limit $3 for update"
+        },
+        {
+          "calls": 1483,
+          "total_ms": 1456.3,
+          "mean_ms": 0.98,
+          "max_ms": 12.0,
+          "rows": 1483,
+          "query": "insert into \"ticket_calls\" (\"business_id\", \"branch_id\", \"ticket_id\", \"counter_id\", \"kind\", \"created_at\") values ($1, $2, $3, $4, $5, $6) ret"
+        },
+        {
+          "calls": 3829,
+          "total_ms": 1124.1,
+          "mean_ms": 0.29,
+          "max_ms": 5.4,
+          "rows": 3829,
+          "query": "select count(*) as aggregate from \"tickets\" where \"counter_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"tickets\".\"business_id"
+        },
+        {
+          "calls": 3829,
+          "total_ms": 777.8,
+          "mean_ms": 0.2,
+          "max_ms": 12.9,
+          "rows": 3829,
+          "query": "select count(*) as aggregate from \"tickets\" where \"branch_id\" = $1 and \"queue_date\"::date = $2 and \"status\" = $3 and \"service_id\" in ($4, $5"
+        },
+        {
+          "calls": 1385,
+          "total_ms": 631.7,
+          "mean_ms": 0.46,
+          "max_ms": 9.7,
+          "rows": 1385,
+          "query": "update \"tickets\" set \"counter_id\" = $1, \"status\" = $2, \"call_count\" = $3, \"called_at\" = $4, \"updated_at\" = $5 where \"id\" = $6"
+        }
+      ]
+    }
+  ]
+}

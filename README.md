@@ -6,6 +6,8 @@ Queue (antrean) and booking system for small clinics and barbershops. Customers 
 
 Live demo: https://antre-eight.vercel.app. The first page says what to click. Log in as `dimas@senyum.test` for the staff console or `owner@senyum.test` for the dashboard, both with the password `password`. No real money moves: the deposit is a simulated payment. Everyone shares the same made-up clinic, so you will see other visitors' tickets, and it resets every night, Jakarta time. The container and the database both sleep when idle, so the first page after a quiet spell takes a few seconds longer.
 
+Load and correctness report: [loadtest/REPORT.md](loadtest/REPORT.md). A k6 load test over HTTP and websockets, from 16 to 200 staff, with 8 database integrity checks that held in all 45 runs, and the TV ordering bug the test exposed and how it was fixed.
+
 Every business, branch, person and phone number in the demo data is made up: a dental clinic called Klinik Gigi Senyum (two branches in Salatiga) and a barbershop called Kumis Tipis. It runs on your laptop with Postgres and costs nothing.
 
 ![Staff console for Loket 1 showing the ticket being served, the next tickets and the booking check-in box](docs/console.png)
