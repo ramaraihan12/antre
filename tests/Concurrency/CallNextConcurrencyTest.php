@@ -158,6 +158,13 @@ it('pushes one snapshot per change and each carries the version and content of t
         $content = fn (array $x) => json_encode([$x['counters'], $x['recent']]);
         expect($content($snapshot))->not->toBe($content($previous))
             ->and(abs($occupied($snapshot) - $occupied($previous)))->toBe(1);
+
+        // The recent list in version order only gains entries at its head: a call's id is handed
+        // out under the branch lock, so id order is commit order. A freed counter leaves it as it was.
+        $recent = $snapshot['recent'];
+        $before = $previous['recent'];
+        $called = $occupied($snapshot) > $occupied($previous);
+        expect($recent)->toBe($called ? array_slice(array_merge([$recent[0] ?? null], $before), 0, DisplaySnapshot::RECENT) : $before);
         $previous = $snapshot;
     }
 

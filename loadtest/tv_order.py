@@ -44,14 +44,16 @@ def content_of(counters, recent):
     return json.dumps([counters, recent])
 
 
-def recent_advances(previous, new):
+def recent_advances(previous, new, capacity=5):
+    """Shown entries keep their relative order and may only fall off the tail; new entries may
+    appear anywhere. No entry in common counts as an advance when the list is full."""
     if not previous:
         return True
-    for k in range(len(new)):
-        tail = new[k:]
-        if tail == previous[: len(tail)]:
-            return True
-    return False
+    kept = [e for e in previous if e in new]
+    if not kept:
+        return len(new) >= capacity
+    order = [e for e in new if e in previous]
+    return order == kept and kept == previous[: len(kept)]
 
 
 def replay(rows):
@@ -87,9 +89,14 @@ def replay(rows):
 
 def analyse(run_dir):
     snaps, finals = load(os.path.join(run_dir, "tv-snapshots.log"))
+    # One client per connection, like the k6 TV (a fresh viewer each iteration). Logs without a
+    # "conn" field replay a VU as a single client.
     by_client = defaultdict(list)
     for s in snaps:
-        by_client[s["vu"]].append(s)
+        by_client[(s["vu"], s.get("conn", 0))].append(s)
+    last_conn = {}
+    for vu, conn in by_client:
+        last_conn[vu] = max(last_conn.get(vu, conn), conn)
     truth = None
     checker = os.path.join(run_dir, "checker.json")
     if os.path.exists(checker):
@@ -98,11 +105,11 @@ def analyse(run_dir):
 
     out = dict.fromkeys(KEYS, 0)
     out["clients"] = len(by_client)
-    for vu, rows in by_client.items():
+    for (vu, conn), rows in by_client.items():
         t, shown = replay(rows)
         for k in KEYS:
             out[k] += t[k]
-        if truth is not None and shown is not None:
+        if truth is not None and shown is not None and conn == last_conn[vu]:
             db = truth.get(str(rows[0]["branch"]))
             if db is not None:
                 out["final_checked"] += 1

@@ -68,8 +68,12 @@ class QueueDesk
                 'called_at' => now(),
                 'call_count' => 1,
             ]);
+            // Take the branch lock before logging the call: the call's id is then handed out
+            // under the lock, so per branch the ids follow commit order and the recent list
+            // only ever gains entries at its head.
+            $this->bump($branch);
             $this->logCall($next, $counter, 'call');
-            $snapshot = $this->bumpAndSnapshot($branch);
+            $snapshot = $this->snapshots->inChange($branch);
 
             return $next;
         });
@@ -87,8 +91,9 @@ class QueueDesk
         $ticket = DB::transaction(function () use ($ticket, &$snapshot): Ticket {
             $locked = $this->lockInState($ticket, TicketStatus::Called);
             $locked->increment('call_count');
+            $this->bump($locked->branch);
             $this->logCall($locked, $locked->counter, 'recall');
-            $snapshot = $this->bumpAndSnapshot($locked->branch);
+            $snapshot = $this->snapshots->inChange($locked->branch);
 
             return $locked;
         });
@@ -133,7 +138,8 @@ class QueueDesk
                 'status' => $to,
                 'done_at' => $to === TicketStatus::Done ? now() : null,
             ]);
-            $snapshot = $this->bumpAndSnapshot($locked->branch);
+            $this->bump($locked->branch);
+            $snapshot = $this->snapshots->inChange($locked->branch);
 
             return $locked;
         });
@@ -155,26 +161,23 @@ class QueueDesk
     }
 
     /**
-     * Gives the change a new display version and builds the snapshot for it, in the same
-     * transaction. Call it last: the branch row lock the bump takes is held until commit, so no
-     * other change to this branch can slip in between the number and the rows read right after
-     * it. The version is one more than the branch had, never below the clock in milliseconds, so
-     * it is unique, follows commit order and stays above anything an open TV can still hold
-     * after the demo database is rebuilt or a backup is restored.
+     * Gives the change a new display version. The update takes the branch row lock, which is held
+     * until commit, so no other change to this branch can slip in between the number and the
+     * rows read for the snapshot afterwards. Order inside a change: row changes, bump, log the
+     * call (if any), then build the snapshot with DisplaySnapshot::inChange(). The version is
+     * one more than the branch had, never below the clock in milliseconds, so it is unique,
+     * follows commit order and stays above anything an open TV can still hold after the demo
+     * database is rebuilt or a backup is restored.
      *
-     * The caller broadcasts the returned payload after commit, as built, instead of building
-     * another one from whatever the database holds by then.
-     *
-     * @return array<string, mixed>
+     * The caller broadcasts the snapshot after commit, as built, instead of building another one
+     * from whatever the database holds by then.
      */
-    private function bumpAndSnapshot(Branch $branch): array
+    private function bump(Branch $branch): void
     {
         $now = (int) floor(microtime(true) * 1000);
         $pick = DB::connection()->getDriverName() === 'sqlite' ? 'max' : 'greatest';
 
         DB::update("update branches set display_version = {$pick}(display_version + 1, ?) where id = ?", [$now, $branch->id]);
-
-        return $this->snapshots->inChange($branch);
     }
 
     private function logCall(Ticket $ticket, Counter $counter, string $kind): void

@@ -275,6 +275,7 @@ export function tv() {
                 console.log(`SNAPSHOT ${JSON.stringify({
                     t: now,
                     vu: exec.vu.idInTest,
+                    conn: exec.vu.iterationInScenario,
                     branch: branch.id,
                     version: snapshot.version,
                     displayed: result.displayed,

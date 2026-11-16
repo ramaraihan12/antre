@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { contentOf, createViewer } from './viewer.js';
+import { contentOf, createViewer, recentAdvances } from './viewer.js';
 
 const snap = (version, counters, recent = []) => ({ version, counters, recent });
 
@@ -99,4 +99,25 @@ test('new calls at the head of the recent list are not stale', () => {
     const r = tv.receive(snap(2, ['A-001', 'A-002'], ['A-002@Loket 2:call', 'A-001@Loket 1:call']));
 
     assert.equal(r.stale, false);
+});
+
+test('a call whose id was handed out earlier but committed later appears below the head: not stale', () => {
+    const tv = createViewer();
+    tv.receive(snap(1, ['B-030'], ['B-030', 'C-024', 'C-023']));
+    const r = tv.receive(snap(2, ['B-030'], ['B-030', 'A-029', 'C-024', 'C-023']));
+
+    assert.equal(r.stale, false);
+});
+
+test('recentAdvances: shown entries keep their order, only the tail may fall off', () => {
+    assert.equal(recentAdvances(['a', 'b', 'c'], ['x', 'a', 'b']), true);
+    assert.equal(recentAdvances(['a', 'b', 'c'], ['a', 'x', 'b', 'c']), true);
+    assert.equal(recentAdvances(['a', 'b', 'c'], ['b', 'a', 'c']), false);
+    assert.equal(recentAdvances(['a', 'b', 'c'], ['a', 'c']), false);
+    assert.equal(recentAdvances(['a', 'b', 'c'], ['x', 'b', 'c']), false);
+});
+
+test('recentAdvances: no overlap counts as an advance only when the list is full', () => {
+    assert.equal(recentAdvances(['a', 'b'], ['v', 'w', 'x', 'y', 'z']), true);
+    assert.equal(recentAdvances(['a', 'b'], ['v', 'w']), false);
 });

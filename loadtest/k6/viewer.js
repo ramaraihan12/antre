@@ -12,18 +12,20 @@ const codesOf = (snapshot) => snapshot.counters.map((c) => (c && typeof c === 'o
 const recentOf = (snapshot) => snapshot.recent.map((r) => (typeof r === 'string' ? r : `${r.code}@${r.counter}:${r.kind}`));
 
 /**
- * The recent-calls list only ever gains entries at its head: the new list is some new calls
- * followed by the front of the old one, with at least one entry in common. Anything else means a
- * call the TV already showed vanished or came back out of order.
+ * Whether the recent-calls list moved forward. Entries the TV already showed keep their relative
+ * order and may only fall off the tail; new entries may appear anywhere (a call's id can be
+ * handed out slightly out of commit order). A list with no entry in common counts as an advance
+ * when it is full, since five or more calls landed between two displayed snapshots.
  */
-export function recentAdvances(previous, next) {
+export function recentAdvances(previous, next, capacity = 5) {
     if (previous.length === 0) return true;
-    for (let k = 0; k < next.length; k++) {
-        const tail = next.slice(k);
-        const front = previous.slice(0, tail.length);
-        if (tail.length === front.length && tail.every((entry, i) => entry === front[i])) return true;
-    }
-    return false;
+    const kept = previous.filter((entry) => next.includes(entry));
+    if (kept.length === 0) return next.length >= capacity;
+    // The shown entries that survive must be in the same order, and the ones that dropped off
+    // must be the oldest: only a suffix of the old list may be gone.
+    const order = next.filter((entry) => previous.includes(entry));
+    if (order.length !== kept.length || !order.every((entry, i) => entry === kept[i])) return false;
+    return kept.every((entry, i) => entry === previous[i]);
 }
 
 export function createViewer() {

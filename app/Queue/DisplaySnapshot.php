@@ -30,8 +30,9 @@ class DisplaySnapshot
      */
     public function for(Branch $branch): array
     {
-        // Already inside someone else's transaction there is nothing to open: the caller is
-        // responsible for reading at one point in time (QueueDesk uses inChange() for that).
+        // Already inside someone else's transaction the isolation level cannot be changed, so
+        // this falls back to plain reads at the caller's level. Do not call for() inside a
+        // transaction; read at one point in time yourself (QueueDesk uses inChange() for that).
         if (DB::transactionLevel() > 0) {
             return $this->build($branch);
         }
