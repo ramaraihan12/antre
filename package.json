@@ -12,6 +12,7 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "typecheck": "tsc --noEmit",
+        "test:unit": "node --test resources/js/lib/*.test.ts",
         "e2e": "playwright test"
     },
     "devDependencies": {
