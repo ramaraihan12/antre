@@ -89,6 +89,11 @@ class QueueDesk
     {
         $snapshot = [];
         $ticket = DB::transaction(function () use ($ticket, &$snapshot): Ticket {
+            // Same order as callNext: the counter row first, then the ticket, then the branch
+            // (in bump). A different order can deadlock against a call from the same counter.
+            if ($ticket->counter_id !== null) {
+                Counter::query()->whereKey($ticket->counter_id)->lockForUpdate()->first();
+            }
             $locked = $this->lockInState($ticket, TicketStatus::Called);
             $locked->increment('call_count');
             $this->bump($locked->branch);

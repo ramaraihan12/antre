@@ -101,17 +101,47 @@ test('new calls at the head of the recent list are not stale', () => {
     assert.equal(r.stale, false);
 });
 
-test('a call whose id was handed out earlier but committed later appears below the head: not stale', () => {
+test('a new call appearing below the head is stale: ids follow commit order under the branch lock', () => {
     const tv = createViewer();
     tv.receive(snap(1, ['B-030'], ['B-030', 'C-024', 'C-023']));
     const r = tv.receive(snap(2, ['B-030'], ['B-030', 'A-029', 'C-024', 'C-023']));
 
+    assert.equal(r.stale, true);
+});
+
+test('a second recall of the same ticket at the same counter is not stale', () => {
+    const tv = createViewer();
+    tv.receive(snap(1, ['A-001'], ['A-001@Loket 1:recall', 'A-002@Loket 2:call']));
+    const r = tv.receive(snap(2, ['A-001'], ['A-001@Loket 1:recall', 'A-001@Loket 1:recall', 'A-002@Loket 2:call']));
+
+    assert.equal(r.displayed, true);
     assert.equal(r.stale, false);
 });
 
-test('recentAdvances: shown entries keep their order, only the tail may fall off', () => {
-    assert.equal(recentAdvances(['a', 'b', 'c'], ['x', 'a', 'b']), true);
-    assert.equal(recentAdvances(['a', 'b', 'c'], ['a', 'x', 'b', 'c']), true);
+test('the older duplicate dropping off the full tail is not stale', () => {
+    const tv = createViewer();
+    const dup = 'A-001@Loket 1:recall';
+    tv.receive(snap(1, ['A-001'], [dup, 'a', 'b', 'c', dup]));
+    const r = tv.receive(snap(2, ['A-001'], [dup, dup, 'a', 'b', 'c']));
+
+    assert.equal(r.stale, false);
+});
+
+test('a genuinely older list after duplicates is stale', () => {
+    const tv = createViewer();
+    const dup = 'A-001@Loket 1:recall';
+    tv.receive(snap(1, ['A-001'], [dup, dup, 'a']));
+    const r = tv.receive(snap(2, ['A-001'], [dup, 'a']));
+
+    assert.equal(r.displayed, true);
+    assert.equal(r.stale, true);
+});
+
+test('recentAdvances: shown entries keep their positions, only the tail may fall off', () => {
+    assert.equal(recentAdvances(['a', 'b', 'c'], ['x', 'a', 'b']), false); // tail dropped but list not full
+    assert.equal(recentAdvances(['a', 'b', 'c', 'd', 'e'], ['x', 'a', 'b', 'c', 'd']), true);
+    assert.equal(recentAdvances(['a', 'b', 'c'], ['x', 'y', 'a', 'b', 'c']), true);
+    assert.equal(recentAdvances(['a', 'b', 'c'], ['a', 'x', 'b', 'c']), false);
     assert.equal(recentAdvances(['a', 'b', 'c'], ['b', 'a', 'c']), false);
     assert.equal(recentAdvances(['a', 'b', 'c'], ['a', 'c']), false);
     assert.equal(recentAdvances(['a', 'b', 'c'], ['x', 'b', 'c']), false);

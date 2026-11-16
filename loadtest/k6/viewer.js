@@ -12,20 +12,23 @@ const codesOf = (snapshot) => snapshot.counters.map((c) => (c && typeof c === 'o
 const recentOf = (snapshot) => snapshot.recent.map((r) => (typeof r === 'string' ? r : `${r.code}@${r.counter}:${r.kind}`));
 
 /**
- * Whether the recent-calls list moved forward. Entries the TV already showed keep their relative
- * order and may only fall off the tail; new entries may appear anywhere (a call's id can be
- * handed out slightly out of commit order). A list with no entry in common counts as an advance
- * when it is full, since five or more calls landed between two displayed snapshots.
+ * Whether the recent-calls list moved forward. Judged by position, not by value, because the same
+ * entry can appear twice (a ticket recalled twice at one counter). A correct next list is j new
+ * entries at the head followed by previous[0..k) in the same positions. k may be shorter than the
+ * whole previous list only when next is full, because then the tail fell off. With nothing in
+ * common (k = 0) that again needs a full list: at least `capacity` calls landed in between.
  */
 export function recentAdvances(previous, next, capacity = 5) {
     if (previous.length === 0) return true;
-    const kept = previous.filter((entry) => next.includes(entry));
-    if (kept.length === 0) return next.length >= capacity;
-    // The shown entries that survive must be in the same order, and the ones that dropped off
-    // must be the oldest: only a suffix of the old list may be gone.
-    const order = next.filter((entry) => previous.includes(entry));
-    if (order.length !== kept.length || !order.every((entry, i) => entry === kept[i])) return false;
-    return kept.every((entry, i) => entry === previous[i]);
+    for (let head = 0; head <= next.length; head++) {
+        const k = next.length - head;
+        if (k > previous.length) continue;
+        if (k < previous.length && next.length < capacity) continue;
+        let same = true;
+        for (let i = 0; i < k && same; i++) same = next[head + i] === previous[i];
+        if (same) return true;
+    }
+    return false;
 }
 
 export function createViewer() {

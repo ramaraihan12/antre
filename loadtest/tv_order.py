@@ -11,7 +11,7 @@ Reported per run and summed per cell:
 - displayed: snapshots the TV would have put on screen
 - stale_displayed: displayed snapshots that take the screen backwards (same rule as viewer.js): a
   code already displayed as gone is back on a counter, or the recent calls did not only gain
-  entries at the head
+  entries at the head (compared by position)
 - same_version_diff: arrivals whose version was seen before with different content
 - final_mismatch / final_checked: clients whose last displayed content differs from the database
   at the end. The database state comes from checker.json ("displays", written by
@@ -45,15 +45,21 @@ def content_of(counters, recent):
 
 
 def recent_advances(previous, new, capacity=5):
-    """Shown entries keep their relative order and may only fall off the tail; new entries may
-    appear anywhere. No entry in common counts as an advance when the list is full."""
+    """Compared by position, since one entry can appear twice (a ticket recalled twice at one
+    counter). A correct new list is j new entries at the head followed by previous[:k] in the same
+    positions. k may be shorter than the old list only when the new list is full (the tail fell
+    off); k = 0 therefore also needs a full list."""
     if not previous:
         return True
-    kept = [e for e in previous if e in new]
-    if not kept:
-        return len(new) >= capacity
-    order = [e for e in new if e in previous]
-    return order == kept and kept == previous[: len(kept)]
+    for head in range(len(new) + 1):
+        k = len(new) - head
+        if k > len(previous):
+            continue
+        if k < len(previous) and len(new) < capacity:
+            continue
+        if new[head:] == previous[:k]:
+            return True
+    return False
 
 
 def replay(rows):
