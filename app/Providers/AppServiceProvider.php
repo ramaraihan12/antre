@@ -56,6 +56,16 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // Walk-ins are 30 a minute per address. The load test switch lifts that and nothing else,
+        // and is ignored in production and on the demo.
+        RateLimiter::for('walkin', function (Request $request) {
+            if (config('antre.loadtest.lift_walkin_limit') && ! app()->isProduction() && ! config('antre.demo.enabled')) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute(30)->by($request->ip());
+        });
+
         RateLimiter::for('ably-token', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
     }
 }

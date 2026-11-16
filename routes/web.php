@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', HomeController::class)->name('home');
 
 Route::get('q/{branch:slug}', [WalkInController::class, 'show'])->name('queue.join');
-Route::post('q/{branch:slug}/tickets', [WalkInController::class, 'store'])->middleware(['throttle:30,1', 'throttle:public-write'])->name('queue.take');
+Route::post('q/{branch:slug}/tickets', [WalkInController::class, 'store'])->middleware(['throttle:walkin', 'throttle:public-write'])->name('queue.take');
 Route::get('t/{ticket:public_id}', [TicketController::class, 'show'])->name('ticket.show');
 Route::post('t/{ticket:public_id}/cancel', [TicketController::class, 'cancel'])->middleware('throttle:public-write')->name('ticket.cancel');
 Route::get('display/{branch:slug}', DisplayController::class)->name('display');

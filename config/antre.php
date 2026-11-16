@@ -37,6 +37,16 @@ return [
         'global_writes_per_hour' => 300,
     ],
 
+    /*
+     * Load tests only, see loadtest/README.md. All k6 traffic comes from one address, so the
+     * walk-in limit of 30 a minute per address would stop it. This lifts that one limit, and
+     * only when APP_ENV is not production and the demo mode is off: AppServiceProvider checks
+     * both, so setting it in production does nothing.
+     */
+    'loadtest' => [
+        'lift_walkin_limit' => (bool) env('LOADTEST_LIFT_WALKIN_LIMIT', false),
+    ],
+
     'ably' => [
         // Long on purpose: a TV left open fetches a new token once per period, and that is the
         // only request it ever makes. 24 hours is the most Ably allows.

@@ -38,6 +38,13 @@ export default [
         },
     },
     {
+        // k6 scripts run in k6's own runtime, which provides these globals.
+        files: ['loadtest/k6/**/*.js'],
+        languageOptions: {
+            globals: { __ENV: 'readonly', __VU: 'readonly', open: 'readonly', console: 'readonly' },
+        },
+    },
+    {
         ignores: ['vendor', 'node_modules', 'public', 'bootstrap/ssr', 'tailwind.config.js'],
     },
     prettier, // Turn off all rules that might conflict with Prettier
