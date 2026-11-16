@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       staff_vus:
-        description: Logged-in staff clicking at the top of the ramp, two per counter
+        description: Logged-in staff at the top of the ramp. Leave empty for two per counter (branches x counters x 2). An odd number is rounded down
         type: number
-        default: 20
+        required: false
       walkins_per_second:
         description: New walk-in customers a second at the top of the ramp
         type: number
@@ -87,20 +87,26 @@ jobs:
           tools: composer:v2
           coverage: none
 
-      - run: composer install --no-interaction --prefer-dist --no-progress
-
+      # Before composer install: its post-autoload-dump runs artisan, which builds the Reverb
+      # broadcaster and needs the secret. Nothing here needs vendor/.
       - name: Make keys for this run
+        id: keys
         run: |
           cp .env.example .env
-          echo "APP_KEY=$(php artisan key:generate --show)" >> "$GITHUB_ENV"
+          app_key="base64:$(openssl rand -base64 32)"
           secret=$(openssl rand -hex 16)
+          echo "::add-mask::$app_key"
           echo "::add-mask::$secret"
+          echo "APP_KEY=$app_key" >> "$GITHUB_ENV"
           echo "REVERB_APP_SECRET=$secret" >> "$GITHUB_ENV"
           mkdir -p loadtest/out
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
 
       # Started with docker run and not as a job service, because a service cannot be given
       # server flags and pg_stat_statements has to be preloaded when Postgres starts.
       - name: Start Postgres 17 with pg_stat_statements
+        id: pg
         run: |
           docker run -d --name pg --network host \
             -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=antre \
@@ -113,9 +119,12 @@ jobs:
           done
           docker exec pg psql -U postgres -d antre -c 'create extension pg_stat_statements'
 
-      - run: php artisan migrate --force
+      - name: Migrate
+        id: migrate
+        run: php artisan migrate --force
 
       - name: Seed branches, counters, staff, tickets and bookings
+        id: seed
         env:
           BRANCHES: ${{ inputs.branches }}
           COUNTERS: ${{ inputs.counters_per_branch }}
@@ -133,6 +142,7 @@ jobs:
       # keeps Postgres and Reverb on 127.0.0.1 for both the app and k6. The root Dockerfile has
       # no opcache, unlike Dockerfile.vercel, so PHP is slower here than on the demo.
       - name: Start the app
+        id: app
         run: |
           docker build -t antre-loadtest .
           docker run -d --name app --network host \
@@ -152,6 +162,7 @@ jobs:
           exit 1
 
       - name: Start Reverb
+        id: reverb
         run: |
           ulimit -n 65535
           nohup php artisan reverb:start --host=127.0.0.1 --port=8090 > loadtest/out/reverb.log 2>&1 &
@@ -203,7 +214,14 @@ jobs:
         id: check
         if: always()
         continue-on-error: true
+        env:
+          K6_OUTCOME: ${{ steps.k6.outcome }}
         run: |
+          # A checker that passes on a database nobody touched proves nothing.
+          if [ "$K6_OUTCOME" = skipped ]; then
+            echo 'k6 never ran, so there is nothing to check.' | tee loadtest/out/checker.txt
+            exit 1
+          fi
           set -o pipefail
           php artisan antre:loadtest-check --json=loadtest/out/checker.json | tee loadtest/out/checker.txt
 
@@ -224,17 +242,24 @@ jobs:
 
       - name: Write the job summary
         if: always()
+        env:
+          K6_OUTCOME: ${{ steps.k6.outcome }}
         run: |
           {
             echo '### Checker'
             echo '```'
-            cat loadtest/out/checker.txt || true
+            cat loadtest/out/checker.txt || echo 'No checker output.'
             echo '```'
             echo '### Top statements by total time'
             echo '```'
             cat loadtest/out/pg-stat-statements-top.txt || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          # The summary of a run that never reached k6 is not a result.
+          if [ "$K6_OUTCOME" = skipped ] || [ ! -s loadtest/out/checker.txt ]; then
+            echo 'The run did not get as far as k6 and the checker.'
+            exit 1
+          fi
 
       - name: Keep the app log
         if: always()
@@ -254,9 +279,19 @@ jobs:
             loadtest/out/app.log
             loadtest/out/reverb.log
 
-      # Both steps above are allowed to fail so the artifacts always upload. The run still fails here.
-      - name: Fail if k6 thresholds or the checker failed
-        if: steps.k6.outcome != 'success' || steps.check.outcome != 'success'
+      # k6 and the checker are allowed to fail so the artifacts always upload. This step always
+      # runs and fails the job when anything upstream did not succeed, including a step that
+      # was skipped because something before it failed (job.status is then failure).
+      - name: Fail if anything upstream failed
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          K6_OUTCOME: ${{ steps.k6.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          REVERB_OUTCOME: ${{ steps.reverb.outcome }}
+          APP_OUTCOME: ${{ steps.app.outcome }}
         run: |
-          echo "k6: ${{ steps.k6.outcome }}, checker: ${{ steps.check.outcome }}"
-          exit 1
+          echo "job: $JOB_STATUS, app: $APP_OUTCOME, reverb: $REVERB_OUTCOME, k6: $K6_OUTCOME, checker: $CHECK_OUTCOME"
+          if [ "$JOB_STATUS" != success ] || [ "$APP_OUTCOME" != success ] || [ "$REVERB_OUTCOME" != success ] || [ "$K6_OUTCOME" != success ] || [ "$CHECK_OUTCOME" != success ]; then
+            exit 1
+          fi

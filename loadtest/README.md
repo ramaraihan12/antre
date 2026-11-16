@@ -2,7 +2,7 @@
 
 A k6 test that drives the whole app over HTTP and websockets, and a checker that proves afterwards that no ticket was called twice. `antre:simulate` calls `QueueDesk` directly with broadcasting off, so it says nothing about login, sessions, Apache, the Reverb broadcast after each commit or the TV display. This does.
 
-Run it only against a copy you started yourself. The scripts refuse any address that is not localhost, and always refuse `*.vercel.app`, so the public demo cannot be hit by accident. The same goes for `WS_URL`.
+Run it only against a copy you started yourself. The scripts refuse any address that is not `localhost`, `127.0.0.1` or `[::1]`, any address with `user@` in it, and any URL that contains `vercel`, `is-a.dev` or `antre-eight` anywhere, so the public demo cannot be hit by accident. The same goes for `WS_URL`.
 
 ## What runs
 
@@ -22,9 +22,9 @@ Walk-ins are limited to 30 a minute per address and k6 sends everything from one
 
 ## In GitHub Actions
 
-Actions tab, `load-test`, Run workflow. Nothing is scheduled. The inputs set the size: staff, walk-ins a second, TV clients, ramp and hold seconds, and how many branches, counters and waiting tickets to seed. The defaults are a small run of a few minutes plus the image build.
+Actions tab, `load-test`, Run workflow. Nothing is scheduled. The inputs set the size: staff (empty means two per counter), walk-ins a second, TV clients, ramp and hold seconds, and how many branches, counters and waiting tickets to seed. The defaults are a small run of a few minutes plus the image build.
 
-The job builds the repo's own `Dockerfile` (Apache with mod_php, like the demo), starts Postgres 17 with `pg_stat_statements` and Reverb next to it, runs k6, then the checker. The run fails if a k6 threshold or the checker fails, and the artifact `load-test` is uploaded either way:
+The job builds the repo's own `Dockerfile` (Apache with mod_php, like the demo), starts Postgres 17 with `pg_stat_statements` and Reverb next to it, runs k6, then the checker. The run fails if a k6 threshold or the checker fails, or if any earlier step (app, Reverb, k6) did not run or failed: a checker that did not get a run to check is a failure, not a pass, and the artifact `load-test` is uploaded either way:
 
 | File | What |
 | --- | --- |
@@ -57,7 +57,7 @@ php artisan antre:loadtest-check
 
 For numbers that mean something, run the app with `docker compose up` (Apache, as in the workflow) and put the two settings above in `.env` first. Pass `BASE_URL` (default `http://127.0.0.1:8010`), `WS_URL` (default `ws://127.0.0.1:8090`) and `REVERB_APP_KEY` (default `antre-local-key`) to k6 with `-e` if yours differ.
 
-Sizes are environment variables: `STAFF_VUS`, `WALKIN_RATE`, `TV_CLIENTS`, `CHECKIN_VUS`, `RAMP_S`, `DURATION_S` and `DRAIN_S`. Staff take the seeded accounts in order, one VU per account, so keep `STAFF_VUS` at or under branches x counters x 2 to get two per counter. A quick try: `RAMP_S=5 DURATION_S=15 STAFF_VUS=6 WALKIN_RATE=2 TV_CLIENTS=4 k6 run ...`.
+Sizes are environment variables: `STAFF_VUS`, `WALKIN_RATE`, `TV_CLIENTS`, `CHECKIN_VUS`, `RAMP_S`, `DURATION_S` and `DRAIN_S`. `STAFF_VUS` defaults to every seeded account, branches x counters x 2, which is two per counter. Staff take the accounts in order, one VU per account, so an odd value is rounded down to an even one and a value above the number of accounts is capped, both with a warning. A quick try: `RAMP_S=5 DURATION_S=15 STAFF_VUS=6 WALKIN_RATE=2 TV_CLIENTS=4 k6 run ...`.
 
 ## The snapshot log
 

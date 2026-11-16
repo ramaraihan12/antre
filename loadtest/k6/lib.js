@@ -5,13 +5,23 @@ import { check } from 'k6';
 export const BASE = (__ENV.BASE_URL || 'http://127.0.0.1:8010').replace(/\/$/, '');
 
 // Load must never reach the public demo. Only a local address is accepted, for the app and
-// for the websocket, and a Vercel or portfolio host is always refused.
+// for the websocket. The production patterns are checked over the whole URL first, so a
+// production name in a path or a query is refused as well.
 export function guardHost(url) {
-    const host = url.replace(/^[a-z]+:\/\//i, '').split(/[/:]/)[0];
-    if (/(^|\.)(vercel\.app|vercel\.com|vercel\.sh|is-a\.dev)$/i.test(host) || /antre-eight/i.test(host)) {
+    if (/vercel|is-a\.dev|antre-eight/i.test(url)) {
         throw new Error(`Refusing to load test ${url}: that is production.`);
     }
-    if (!['localhost', '127.0.0.1', '[', '::1'].includes(host)) {
+
+    const parts = url.match(/^(?:https?|wss?):\/\/([^/?#]*)(?:[/?#]|$)/i);
+    const authority = parts ? parts[1] : '';
+    // No userinfo: in http://127.0.0.1@example.com the host is example.com.
+    if (!parts || authority.includes('@')) {
+        throw new Error(`Refusing to load test ${url}: not a plain http or ws address.`);
+    }
+
+    // IPv6 is only ever written in brackets, and only the loopback address is accepted.
+    const host = authority.startsWith('[') ? authority.match(/^(\[[^\]]*\])(?::\d+)?$/) : authority.match(/^([^:]+)(?::\d+)?$/);
+    if (!host || !['localhost', '127.0.0.1', '[::1]'].includes(host[1].toLowerCase())) {
         throw new Error(`Refusing to load test ${url}: only localhost is allowed.`);
     }
 }

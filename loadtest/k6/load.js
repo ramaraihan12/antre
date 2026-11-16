@@ -16,7 +16,13 @@ const num = (name, fallback) => Number(__ENV[name] || fallback);
 const RAMP_S = num('RAMP_S', 20);
 const DURATION_S = num('DURATION_S', 60);
 const DRAIN_S = num('DRAIN_S', 90);
-const STAFF_VUS = num('STAFF_VUS', 20);
+// Two staff per counter: by default every seeded account gets a VU. A given number is rounded
+// down to an even one, and capped at the number of accounts, so no counter has a lone user.
+const requestedStaff = num('STAFF_VUS', staffUsers.length);
+const STAFF_VUS = Math.min(Math.max(2, requestedStaff - (requestedStaff % 2)), staffUsers.length);
+if (STAFF_VUS !== requestedStaff) {
+    console.warn(`STAFF_VUS ${requestedStaff} became ${STAFF_VUS}: two per counter, at most ${staffUsers.length} accounts.`);
+}
 const WALKIN_RATE = num('WALKIN_RATE', 5); // new customers a second at the top of the ramp
 const CHECKIN_VUS = num('CHECKIN_VUS', 4);
 const TV_CLIENTS = num('TV_CLIENTS', 20);
@@ -144,8 +150,8 @@ function staffRound(session, user) {
 }
 
 export function staff() {
-    // Accounts are taken in order, so with STAFF_VUS at or under the number of accounts every
-    // account is driven by exactly one VU and each counter gets two.
+    // Accounts are taken in order and STAFF_VUS is even and at most the number of accounts, so
+    // each account has one VU and each counter in use has two.
     const index = exec.scenario.iterationInTest;
     const user = staffUsers[index % staffUsers.length];
     const endsAt = Date.now() + (LOAD_S * 1000 - exec.instance.currentTestRunDuration);
