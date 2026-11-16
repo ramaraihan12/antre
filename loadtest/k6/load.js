@@ -10,6 +10,7 @@ import exec from 'k6/execution';
 import { check, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 import { Session, guardHost, notBounced, manifest, pick, staffUsers } from './lib.js';
+import { contentOf, createViewer } from './viewer.js';
 
 const num = (name, fallback) => Number(__ENV[name] || fallback);
 
@@ -104,8 +105,13 @@ export const options = {
 const snapshots = new Counter('tv_snapshots');
 const subscribed = new Counter('tv_subscriptions');
 const deliveryMs = new Trend('tv_delivery_ms', true); // receive time minus the snapshot's built_at
-const regressions = new Counter('tv_version_regressions'); // a snapshot older than one already received
-const sameVersion = new Counter('tv_same_version_different_content'); // the stale-display suspect
+// What a viewer sees, after the TV's accept rule (strictly newer wins), see viewer.js:
+const staleDisplayed = new Counter('tv_stale_displayed'); // displayed snapshots whose content is older than something already displayed
+const sameVersion = new Counter('tv_same_version_different_content'); // two arrivals with one version and different content
+const finalMismatch = new Counter('tv_final_mismatch'); // clients whose final screen differs from the database at the end
+const finalChecked = new Counter('tv_final_checked'); // clients that could be compared at the end
+const displayedCount = new Counter('tv_displayed'); // snapshots the TV would have put on screen
+const regressions = new Counter('tv_raw_version_regressions'); // informational: arrival order before the accept rule, so reordered delivery counts
 const reconnects = new Counter('tv_reconnects');
 const staffActions = new Rate('staff_action_not_bounced');
 
@@ -237,8 +243,8 @@ export function tv() {
     const left = TOTAL_S * 1000 - exec.instance.currentTestRunDuration;
     if (left < 1000) return;
 
-    let lastVersion = 0;
-    let lastContent = '';
+    const viewer = createViewer();
+    let rawSeen = 0;
 
     const res = ws.connect(url, { tags: { kind: 'tv' } }, (socket) => {
         socket.on('message', (raw) => {
@@ -253,14 +259,17 @@ export function tv() {
                 subscribed.add(1);
             } else if (message.event === 'display.updated') {
                 const { snapshot, announcement } = JSON.parse(message.data);
-                const content = JSON.stringify([snapshot.counters.map((c) => c.code), snapshot.recent.map((r) => `${r.code}@${r.counter}`)]);
+                const result = viewer.receive(snapshot);
 
                 snapshots.add(1);
                 deliveryMs.add(now - snapshot.built_at);
-                if (snapshot.version < lastVersion) regressions.add(1);
-                if (snapshot.version === lastVersion && content !== lastContent) sameVersion.add(1);
-                lastVersion = snapshot.version;
-                lastContent = content;
+                if (result.displayed) displayedCount.add(1);
+                if (result.stale) staleDisplayed.add(1);
+                if (result.sameVersionDifferentContent) sameVersion.add(1);
+                if (viewer.tally().rawRegressions > rawSeen) {
+                    rawSeen = viewer.tally().rawRegressions;
+                    regressions.add(1);
+                }
 
                 // One line per snapshot received. The later stale-display check reads these.
                 console.log(`SNAPSHOT ${JSON.stringify({
@@ -268,6 +277,7 @@ export function tv() {
                     vu: exec.vu.idInTest,
                     branch: branch.id,
                     version: snapshot.version,
+                    displayed: result.displayed,
                     counters: snapshot.counters.map((c) => c.code),
                     recent: snapshot.recent.map((r) => `${r.code}@${r.counter}:${r.kind}`),
                     announcement: announcement ? announcement.id : null,
@@ -277,6 +287,19 @@ export function tv() {
 
         socket.setTimeout(() => socket.close(), left);
     });
+
+    // The run is over and staff have stopped: what this TV shows must be what the database holds.
+    // Only at the end: a socket that dropped mid-run is compared against a database still moving.
+    const shown = viewer.final();
+    if (shown !== null && TOTAL_S * 1000 - exec.instance.currentTestRunDuration <= 2000) {
+        const truth = new Session().displayState(branch.slug);
+        if (truth !== null) {
+            finalChecked.add(1);
+            const same = contentOf(truth) === shown.content;
+            if (!same) finalMismatch.add(1);
+            console.log(`FINAL ${JSON.stringify({ vu: exec.vu.idInTest, branch: branch.id, shown_version: shown.version, db_version: truth.version, same })}`);
+        }
+    }
 
     check(res, { 'tv websocket opened': (r) => r && r.status === 101 });
 

@@ -4,6 +4,7 @@ namespace App\Queue;
 
 use App\Enums\TicketStatus;
 use App\Exceptions\QueueException;
+use App\Models\Branch;
 use App\Models\Counter;
 use App\Models\Ticket;
 use App\Models\TicketCall;
@@ -15,7 +16,10 @@ use Illuminate\Support\Facades\DB;
  */
 class QueueDesk
 {
-    public function __construct(private readonly QueueBroadcaster $broadcaster) {}
+    public function __construct(
+        private readonly QueueBroadcaster $broadcaster,
+        private readonly DisplaySnapshot $snapshots,
+    ) {}
 
     /**
      * Claims the next waiting ticket for this counter, or returns null when nobody is waiting.
@@ -25,7 +29,8 @@ class QueueDesk
      */
     public function callNext(Counter $counter): ?Ticket
     {
-        $ticket = DB::transaction(function () use ($counter): ?Ticket {
+        $snapshot = [];
+        $ticket = DB::transaction(function () use ($counter, &$snapshot): ?Ticket {
             // Serialises repeated clicks from the same counter.
             Counter::query()->whereKey($counter->id)->lockForUpdate()->firstOrFail();
 
@@ -64,13 +69,13 @@ class QueueDesk
                 'call_count' => 1,
             ]);
             $this->logCall($next, $counter, 'call');
-            $this->bumpDisplay($counter->branch_id);
+            $snapshot = $this->bumpAndSnapshot($branch);
 
             return $next;
         });
 
         if ($ticket !== null) {
-            $this->broadcaster->ticketCalled($ticket, $counter, recall: false);
+            $this->broadcaster->ticketCalled($ticket, $counter, $snapshot, recall: false);
         }
 
         return $ticket;
@@ -78,16 +83,17 @@ class QueueDesk
 
     public function recall(Ticket $ticket): Ticket
     {
-        $ticket = DB::transaction(function () use ($ticket): Ticket {
+        $snapshot = [];
+        $ticket = DB::transaction(function () use ($ticket, &$snapshot): Ticket {
             $locked = $this->lockInState($ticket, TicketStatus::Called);
             $locked->increment('call_count');
             $this->logCall($locked, $locked->counter, 'recall');
-            $this->bumpDisplay($locked->branch_id);
+            $snapshot = $this->bumpAndSnapshot($locked->branch);
 
             return $locked;
         });
 
-        $this->broadcaster->ticketCalled($ticket, $ticket->counter, recall: true);
+        $this->broadcaster->ticketCalled($ticket, $ticket->counter, $snapshot, recall: true);
 
         return $ticket;
     }
@@ -120,18 +126,19 @@ class QueueDesk
 
     private function finish(Ticket $ticket, TicketStatus $to): Ticket
     {
-        $ticket = DB::transaction(function () use ($ticket, $to): Ticket {
+        $snapshot = [];
+        $ticket = DB::transaction(function () use ($ticket, $to, &$snapshot): Ticket {
             $locked = $this->lockInState($ticket, TicketStatus::Called);
             $locked->update([
                 'status' => $to,
                 'done_at' => $to === TicketStatus::Done ? now() : null,
             ]);
-            $this->bumpDisplay($locked->branch_id);
+            $snapshot = $this->bumpAndSnapshot($locked->branch);
 
             return $locked;
         });
 
-        $this->broadcaster->counterFreed($ticket, $to);
+        $this->broadcaster->counterFreed($ticket, $to, $snapshot);
 
         return $ticket;
     }
@@ -148,18 +155,26 @@ class QueueDesk
     }
 
     /**
-     * Gives the change a new display version: one more than the branch had, but never below the
-     * clock in milliseconds. Call it last in the transaction: the row lock it takes is held until
-     * commit, so versions are unique and follow commit order, and the lock stays short. Anchoring
-     * to the clock keeps the number above anything an open TV can still hold after the demo
-     * database is rebuilt or a backup is restored, when the stored counter starts over.
+     * Gives the change a new display version and builds the snapshot for it, in the same
+     * transaction. Call it last: the branch row lock the bump takes is held until commit, so no
+     * other change to this branch can slip in between the number and the rows read right after
+     * it. The version is one more than the branch had, never below the clock in milliseconds, so
+     * it is unique, follows commit order and stays above anything an open TV can still hold
+     * after the demo database is rebuilt or a backup is restored.
+     *
+     * The caller broadcasts the returned payload after commit, as built, instead of building
+     * another one from whatever the database holds by then.
+     *
+     * @return array<string, mixed>
      */
-    private function bumpDisplay(int $branchId): void
+    private function bumpAndSnapshot(Branch $branch): array
     {
         $now = (int) floor(microtime(true) * 1000);
         $pick = DB::connection()->getDriverName() === 'sqlite' ? 'max' : 'greatest';
 
-        DB::update("update branches set display_version = {$pick}(display_version + 1, ?) where id = ?", [$now, $branchId]);
+        DB::update("update branches set display_version = {$pick}(display_version + 1, ?) where id = ?", [$now, $branch->id]);
+
+        return $this->snapshots->for($branch);
     }
 
     private function logCall(Ticket $ticket, Counter $counter, string $kind): void

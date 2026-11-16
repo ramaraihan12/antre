@@ -5,6 +5,7 @@ use App\Exceptions\QueueException;
 use App\Models\Branch;
 use App\Queue\DisplaySnapshot;
 use App\Queue\QueueDesk;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
 beforeEach(fn () => $this->desk = app(QueueDesk::class));
@@ -122,4 +123,43 @@ it('carries the branch version together with the matching content', function () 
 
     expect($snapshot['version'])->toBe(branchVersion($s->branch))
         ->and($snapshot['counters'][0]['code'])->toBe('A-001');
+});
+
+it('pushes each change with the content of that change, even when the broadcasts wait for an outer commit', function () {
+    Event::fake([DisplayUpdated::class]);
+    $s = scenario();
+    issue($s->branch, $s->a);
+    issue($s->branch, $s->a);
+
+    // Both changes commit together at the end, so anything rebuilt after commit would see both.
+    DB::transaction(function () use ($s) {
+        $this->desk->callNext($s->c1);
+        $this->desk->callNext($s->c2);
+    });
+
+    $pushed = Event::dispatched(DisplayUpdated::class)->map(fn (array $args) => $args[0]->snapshot)->values();
+
+    expect($pushed)->toHaveCount(2)
+        ->and($pushed[0]['version'])->toBeLessThan($pushed[1]['version'])
+        ->and(collect($pushed[0]['counters'])->pluck('code')->all())->toBe(['A-001', null])
+        ->and(collect($pushed[1]['counters'])->pluck('code')->all())->toBe(['A-001', 'A-002'])
+        ->and($pushed[1]['version'])->toBe(branchVersion($s->branch));
+});
+
+it('broadcasts nothing for a change that rolled back', function () {
+    Event::fake([DisplayUpdated::class]);
+    $s = scenario();
+    issue($s->branch, $s->a);
+    $before = branchVersion($s->branch);
+
+    try {
+        DB::transaction(function () use ($s) {
+            $this->desk->callNext($s->c1);
+            throw new RuntimeException('the surrounding work failed');
+        });
+    } catch (RuntimeException) {
+    }
+
+    Event::assertNotDispatched(DisplayUpdated::class);
+    expect(branchVersion($s->branch))->toBe($before);
 });

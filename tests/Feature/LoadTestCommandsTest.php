@@ -110,3 +110,20 @@ it('fails when a counter holds two called tickets', function () {
 it('reports when there is no load test data', function () {
     $this->artisan('antre:loadtest-check')->assertFailed();
 });
+
+it('writes what each branch display should show, for comparing with the screens clients ended on', function () {
+    $manifest = seedLoadTest();
+    $counter = Counter::query()->orderBy('id')->first();
+    app(QueueDesk::class)->callNext($counter);
+    $path = sys_get_temp_dir().'/antre-check-'.uniqid().'.json';
+
+    $this->artisan('antre:loadtest-check', ['--allow-open' => true, '--json' => $path])->assertSuccessful();
+    $displays = json_decode(File::get($path), true)['displays'];
+    File::delete($path);
+
+    $branchId = $counter->branch_id;
+    expect($displays)->toHaveCount(count($manifest['branches']))
+        ->and($displays[$branchId]['counters'][0])->toMatch('/^[A-Z]-[0-9]+$/')
+        ->and($displays[$branchId]['recent'][0])->toEndWith(':call')
+        ->and($displays[$branchId]['version'])->toBeGreaterThan(0);
+});

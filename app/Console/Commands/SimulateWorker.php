@@ -2,10 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Events\DisplayUpdated;
 use App\Exceptions\QueueException;
 use App\Models\Counter;
 use App\Queue\QueueDesk;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Event;
 
 /**
  * One simulated staff member, run as its own PHP process by antre:simulate and by the
@@ -16,7 +18,8 @@ class SimulateWorker extends Command
     protected $signature = 'antre:simulate-worker
         {counter : Counter id}
         {--start-at= : Unix time (float) to wait for, so all workers start together}
-        {--think=0 : Milliseconds to keep a ticket before finishing it}';
+        {--think=0 : Milliseconds to keep a ticket before finishing it}
+        {--snapshots-to= : Append every display snapshot this worker broadcasts to this file, one JSON object per line}';
 
     protected $description = 'Internal: call and finish tickets at one counter until the queue is empty';
 
@@ -26,6 +29,11 @@ class SimulateWorker extends Command
     {
         // Latency should measure the database, not a websocket server that is not running.
         config(['broadcasting.default' => 'null']);
+
+        if ($path = $this->option('snapshots-to')) {
+            Event::listen(DisplayUpdated::class, fn (DisplayUpdated $event) => file_put_contents($path, json_encode($event->snapshot).'
+', FILE_APPEND | LOCK_EX));
+        }
 
         $counter = Counter::query()->findOrFail($this->argument('counter'));
         $think = (int) $this->option('think');

@@ -94,6 +94,17 @@ export class Session {
         return ok;
     }
 
+    /** The branch's display snapshot as the page props carry it, or null. */
+    displayState(branchSlug) {
+        const path = `/display/${branchSlug}`;
+        const html = this.get(path, 'display_page_html', {}, 'GET /display/:branch (html)');
+        const m = String(html.body).match(/(?:&quot;|")version(?:&quot;|"):\s*(?:&quot;|")([a-f0-9]+)(?:&quot;|")/);
+        const headers = { ...INERTIA, 'X-Inertia-Version': m ? m[1] : '' };
+        const r = this.get(path, 'display_page', headers, 'GET /display/:branch');
+
+        return r.status === 200 ? r.json('props.snapshot') : null;
+    }
+
     /** The counter page as Inertia JSON: { current, waiting_count, ... } or null. */
     counterState(counterId) {
         const path = `/console/counters/${counterId}`;

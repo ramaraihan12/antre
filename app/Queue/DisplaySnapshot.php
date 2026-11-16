@@ -16,6 +16,10 @@ use Illuminate\Support\Facades\DB;
  * change the display can show, to the larger of the old value plus one and the clock in
  * milliseconds. It only goes up, no two changes share a number, and it stays above whatever an
  * open TV saw before a database rebuild, so the TV can tell which of two snapshots is newer.
+ *
+ * Version and content must describe one moment. QueueDesk builds the snapshot inside the change's
+ * own transaction, right after the bump, while it holds the branch row lock. Called on its own
+ * (the page load) it reads both in one REPEATABLE READ transaction on Postgres.
  */
 class DisplaySnapshot
 {
@@ -26,9 +30,22 @@ class DisplaySnapshot
      */
     public function for(Branch $branch): array
     {
-        // Read before the rows. Anything committed after this read shows up in the rows at the
-        // latest, so the content is never older than the version it carries, and the change that
-        // made it newer pushes its own snapshot with a higher version.
+        if (DB::transactionLevel() > 0) {
+            return $this->build($branch);
+        }
+
+        return DB::transaction(function () use ($branch): array {
+            if (DB::getDriverName() === 'pgsql') {
+                DB::statement('set transaction isolation level repeatable read read only');
+            }
+
+            return $this->build($branch);
+        });
+    }
+
+    /** @return array{counters: list<array{number: int, label: string, code: string|null}>, recent: list<array{code: string, counter: string, kind: string}>, version: int, built_at: int} */
+    private function build(Branch $branch): array
+    {
         $version = (int) DB::table('branches')->where('id', $branch->id)->value('display_version');
 
         $active = Ticket::query()

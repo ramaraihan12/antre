@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Branch;
+use App\Queue\DisplaySnapshot;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -117,9 +119,31 @@ class LoadTestCheck extends Command
                 'recalls' => $recalls,
                 'checked_in' => $checkedIn,
                 'checks' => $rows,
+                'displays' => $this->displays($id),
             ], JSON_PRETTY_PRINT));
         }
 
         return $failed === 0 ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * What each branch's TV should show now, in the shape of the k6 snapshot log, so
+     * loadtest/tv_order.py can compare the screens clients ended on with the database.
+     *
+     * @return array<int, array{version: int, counters: list<string|null>, recent: list<string>}>
+     */
+    private function displays(int $businessId): array
+    {
+        $out = [];
+        foreach (Branch::withoutGlobalScopes()->where('business_id', $businessId)->get() as $branch) {
+            $snapshot = app(DisplaySnapshot::class)->for($branch);
+            $out[$branch->id] = [
+                'version' => $snapshot['version'],
+                'counters' => array_map(fn (array $c) => $c['code'], $snapshot['counters']),
+                'recent' => array_map(fn (array $r) => "{$r['code']}@{$r['counter']}:{$r['kind']}", $snapshot['recent']),
+            ];
+        }
+
+        return $out;
     }
 }

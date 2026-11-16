@@ -21,13 +21,18 @@ beforeEach(function () {
  * @param  list<int>  $counterIds
  * @return list<Process>
  */
-function startWorkers(array $counterIds, int $think = 0): array
+function startWorkers(array $counterIds, int $think = 0, ?string $snapshotsDir = null): array
 {
     $startAt = microtime(true) + 1.5;
 
-    return array_map(function (int $id) use ($startAt, $think) {
+    return array_map(function (int $id) use ($startAt, $think, $snapshotsDir) {
+        $command = [PHP_BINARY, 'artisan', 'antre:simulate-worker', (string) $id, "--start-at=$startAt", "--think=$think"];
+        if ($snapshotsDir !== null) {
+            $command[] = "--snapshots-to=$snapshotsDir/$id.jsonl";
+        }
+
         $process = new Process(
-            [PHP_BINARY, 'artisan', 'antre:simulate-worker', (string) $id, "--start-at=$startAt", "--think=$think"],
+            $command,
             base_path(),
             ['BROADCAST_CONNECTION' => 'null'],
             timeout: 120,
@@ -105,4 +110,57 @@ it('skips a ticket another transaction has locked instead of waiting for it', fu
         ->and((int) explode(' ', array_values($called)[0])[0])->toBe($second->id)
         ->and($first->fresh()->status)->toBe(TicketStatus::Waiting)
         ->and($elapsed)->toBeLessThan(15.0);
+});
+
+it('pushes one snapshot per change and each carries the version and content of that change', function () {
+    $s = scenario();
+    $counters = [$s->c1, $s->c2];
+    foreach (range(3, 5) as $number) {
+        $extra = Counter::factory()->for($s->branch)->create(['number' => $number]);
+        $extra->services()->attach([$s->a->id]);
+        $counters[] = $extra;
+    }
+    $s->c2->services()->attach($s->b->id);
+    foreach (range(1, 80) as $i) {
+        issue($s->branch, $i % 3 === 0 ? $s->b : $s->a);
+    }
+
+    $dir = sys_get_temp_dir().'/antre-snap-'.bin2hex(random_bytes(4));
+    mkdir($dir);
+
+    try {
+        $workers = startWorkers(array_map(fn (Counter $c) => $c->id, $counters), think: 1, snapshotsDir: $dir);
+        foreach ($workers as $worker) {
+            $worker->wait();
+            expect($worker->isSuccessful())->toBeTrue($worker->getErrorOutput().$worker->getOutput());
+        }
+
+        $snapshots = collect(glob("$dir/*.jsonl"))
+            ->flatMap(fn (string $file) => array_map(fn (string $line) => json_decode($line, true), array_filter(explode('
+', file_get_contents($file)))))
+            ->sortBy('version')
+            ->values();
+    } finally {
+        array_map('unlink', glob("$dir/*"));
+        rmdir($dir);
+    }
+
+    // 80 calls and 80 completions, each one change, each pushed exactly once with its own number.
+    expect($snapshots)->toHaveCount(160)
+        ->and($snapshots->pluck('version')->unique())->toHaveCount(160);
+
+    // Read in version order, every snapshot is the one before it plus exactly one change: a
+    // counter taken or a counter freed. A snapshot built from a different moment than its
+    // version would repeat its neighbour's content or skip a step.
+    $occupied = fn (array $snapshot) => collect($snapshot['counters'])->whereNotNull('code')->count();
+    $previous = ['counters' => [], 'recent' => []];
+    foreach ($snapshots as $snapshot) {
+        $content = fn (array $x) => json_encode([$x['counters'], $x['recent']]);
+        expect($content($snapshot))->not->toBe($content($previous))
+            ->and(abs($occupied($snapshot) - $occupied($previous)))->toBe(1);
+        $previous = $snapshot;
+    }
+
+    expect($snapshots->last()['version'])->toBe((int) DB::table('branches')->where('id', $s->branch->id)->value('display_version'))
+        ->and($occupied($snapshots->last()))->toBe(0);
 });
