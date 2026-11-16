@@ -7,17 +7,29 @@ use App\Models\Branch;
 use App\Models\Counter;
 use App\Models\Ticket;
 use App\Models\TicketCall;
+use Illuminate\Support\Facades\DB;
 
-/** What the TV display shows for a branch: one number per counter and the last five calls. */
+/**
+ * What the TV display shows for a branch: one number per counter and the last five calls.
+ *
+ * The version is branches.display_version, which QueueDesk raises by one inside the transaction
+ * of every change the display can show. It only goes up, and no two changes share a number, so
+ * the TV can tell which of two snapshots is newer without comparing clocks.
+ */
 class DisplaySnapshot
 {
     public const RECENT = 5;
 
     /**
-     * @return array{counters: list<array{number: int, label: string, code: string|null}>, recent: list<array{code: string, counter: string, kind: string}>, version: int}
+     * @return array{counters: list<array{number: int, label: string, code: string|null}>, recent: list<array{code: string, counter: string, kind: string}>, version: int, built_at: int}
      */
     public function for(Branch $branch): array
     {
+        // Read before the rows. Anything committed after this read shows up in the rows at the
+        // latest, so the content is never older than the version it carries, and the change that
+        // made it newer pushes its own snapshot with a higher version.
+        $version = (int) DB::table('branches')->where('id', $branch->id)->value('display_version');
+
         $active = Ticket::query()
             ->where('branch_id', $branch->id)
             ->whereDate('queue_date', $branch->today())
@@ -52,6 +64,6 @@ class DisplaySnapshot
             ->values()
             ->all();
 
-        return ['counters' => $counters, 'recent' => $recent, 'version' => (int) floor(microtime(true) * 1000)];
+        return ['counters' => $counters, 'recent' => $recent, 'version' => $version, 'built_at' => (int) floor(microtime(true) * 1000)];
     }
 }

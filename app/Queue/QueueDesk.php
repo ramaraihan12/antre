@@ -64,6 +64,7 @@ class QueueDesk
                 'call_count' => 1,
             ]);
             $this->logCall($next, $counter, 'call');
+            $this->bumpDisplay($counter->branch_id);
 
             return $next;
         });
@@ -81,6 +82,7 @@ class QueueDesk
             $locked = $this->lockInState($ticket, TicketStatus::Called);
             $locked->increment('call_count');
             $this->logCall($locked, $locked->counter, 'recall');
+            $this->bumpDisplay($locked->branch_id);
 
             return $locked;
         });
@@ -124,6 +126,7 @@ class QueueDesk
                 'status' => $to,
                 'done_at' => $to === TicketStatus::Done ? now() : null,
             ]);
+            $this->bumpDisplay($locked->branch_id);
 
             return $locked;
         });
@@ -142,6 +145,15 @@ class QueueDesk
         }
 
         return $locked;
+    }
+
+    /**
+     * Gives the change a new display version. Call it last in the transaction: the row lock it
+     * takes is held until commit, so versions follow commit order and the lock stays short.
+     */
+    private function bumpDisplay(int $branchId): void
+    {
+        DB::table('branches')->where('id', $branchId)->increment('display_version');
     }
 
     private function logCall(Ticket $ticket, Counter $counter, string $kind): void

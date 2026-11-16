@@ -103,7 +103,7 @@ export const options = {
 
 const snapshots = new Counter('tv_snapshots');
 const subscribed = new Counter('tv_subscriptions');
-const deliveryMs = new Trend('tv_delivery_ms', true); // receive time minus the snapshot version (its build time)
+const deliveryMs = new Trend('tv_delivery_ms', true); // receive time minus the snapshot's built_at
 const regressions = new Counter('tv_version_regressions'); // a snapshot older than one already received
 const sameVersion = new Counter('tv_same_version_different_content'); // the stale-display suspect
 const reconnects = new Counter('tv_reconnects');
@@ -256,7 +256,7 @@ export function tv() {
                 const content = JSON.stringify([snapshot.counters.map((c) => c.code), snapshot.recent.map((r) => `${r.code}@${r.counter}`)]);
 
                 snapshots.add(1);
-                deliveryMs.add(now - snapshot.version);
+                deliveryMs.add(now - snapshot.built_at);
                 if (snapshot.version < lastVersion) regressions.add(1);
                 if (snapshot.version === lastVersion && content !== lastContent) sameVersion.add(1);
                 lastVersion = snapshot.version;

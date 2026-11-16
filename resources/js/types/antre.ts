@@ -21,8 +21,10 @@ export interface DisplayCall {
 export interface DisplaySnapshot {
     counters: DisplayCounter[];
     recent: DisplayCall[];
-    /** Milliseconds when the server built it. Older snapshots that arrive late are ignored. */
+    /** Per-branch counter that goes up by one with every change the display shows. Older snapshots that arrive late are ignored. */
     version: number;
+    /** Milliseconds when the server built it. Only used to measure delivery time. */
+    built_at: number;
 }
 
 export interface Announcement {

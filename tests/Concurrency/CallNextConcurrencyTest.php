@@ -4,6 +4,7 @@ use App\Enums\TicketStatus;
 use App\Models\Counter;
 use App\Models\Ticket;
 use App\Models\TicketCall;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
 
 /*
@@ -66,6 +67,8 @@ it('never gives the same ticket to two counters calling at the same time', funct
         ->and($calledByWorkers->unique())->toHaveCount(120)
         ->and(Ticket::where('status', TicketStatus::Done)->count())->toBe(120)
         ->and(TicketCall::where('kind', 'call')->count())->toBe(120)
+        // Every call and every finish took its own display version, none was lost or handed out twice.
+        ->and((int) DB::table('branches')->where('id', $s->branch->id)->value('display_version'))->toBe(240)
         ->and(TicketCall::selectRaw('ticket_id, count(*) as n')->groupBy('ticket_id')->havingRaw('count(*) > 1')->get())->toBeEmpty();
 
     // More than one process really did work: nobody sat out the whole run.

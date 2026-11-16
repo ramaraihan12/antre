@@ -6,6 +6,7 @@ const snap = (version: number, code: string | null) => ({
     counters: [{ number: 1, label: 'Loket 1', code }],
     recent: [],
     version,
+    built_at: 0,
 });
 
 test('a pushed snapshot with the same version does not replace what is shown', () => {
