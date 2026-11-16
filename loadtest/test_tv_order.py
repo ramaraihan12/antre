@@ -37,6 +37,11 @@ class RecentAdvances(unittest.TestCase):
     def test_older_duplicate_drops_off_the_tail(self):
         self.assertTrue(recent_advances([DUP, "a", "b", "c", DUP], [DUP, DUP, "a", "b", "c"]))
 
+    def test_full_list_that_is_older_or_reordered(self):
+        self.assertFalse(recent_advances(list("fedcb"), list("edcba")))
+        self.assertFalse(recent_advances(list("abcde"), list("bacde")))
+        self.assertFalse(recent_advances(list("abcde"), list("xbcde")))
+
     def test_genuinely_older_list(self):
         self.assertFalse(recent_advances([DUP, DUP, "a"], [DUP, "a"]))
 
@@ -49,6 +54,11 @@ class Replay(unittest.TestCase):
 
     def test_older_list_is_counted_stale(self):
         rows = [snap(1, ["A-001"], [DUP, DUP, "a"]), snap(2, ["A-001"], [DUP, "a"])]
+        t, _ = replay(rows)
+        self.assertEqual(t["stale_displayed"], 1)
+
+    def test_full_lists_older_version_is_counted_stale(self):
+        rows = [snap(1, ["A-001"], list("fedcb")), snap(2, ["A-001"], list("edcba"))]
         t, _ = replay(rows)
         self.assertEqual(t["stale_displayed"], 1)
 

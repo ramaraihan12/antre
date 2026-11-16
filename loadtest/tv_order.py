@@ -48,7 +48,8 @@ def recent_advances(previous, new, capacity=5):
     """Compared by position, since one entry can appear twice (a ticket recalled twice at one
     counter). A correct new list is j new entries at the head followed by previous[:k] in the same
     positions. k may be shorter than the old list only when the new list is full (the tail fell
-    off); k = 0 therefore also needs a full list."""
+    off). k = 0 also needs a full list that shares no entry with the old one; otherwise an older or
+    reordered full list would pass."""
     if not previous:
         return True
     for head in range(len(new) + 1):
@@ -56,6 +57,8 @@ def recent_advances(previous, new, capacity=5):
         if k > len(previous):
             continue
         if k < len(previous) and len(new) < capacity:
+            continue
+        if k == 0 and any(v in previous for v in new):
             continue
         if new[head:] == previous[:k]:
             return True

@@ -137,6 +137,8 @@ test('a genuinely older list after duplicates is stale', () => {
     assert.equal(r.stale, true);
 });
 
+const list = (str) => str.split('');
+
 test('recentAdvances: shown entries keep their positions, only the tail may fall off', () => {
     assert.equal(recentAdvances(['a', 'b', 'c'], ['x', 'a', 'b']), false); // tail dropped but list not full
     assert.equal(recentAdvances(['a', 'b', 'c', 'd', 'e'], ['x', 'a', 'b', 'c', 'd']), true);
@@ -150,4 +152,19 @@ test('recentAdvances: shown entries keep their positions, only the tail may fall
 test('recentAdvances: no overlap counts as an advance only when the list is full', () => {
     assert.equal(recentAdvances(['a', 'b'], ['v', 'w', 'x', 'y', 'z']), true);
     assert.equal(recentAdvances(['a', 'b'], ['v', 'w']), false);
+});
+
+test('recentAdvances: a full list that is older or reordered is stale', () => {
+    assert.equal(recentAdvances(list('fedcb'), list('edcba')), false);
+    assert.equal(recentAdvances(list('abcde'), list('bacde')), false);
+    assert.equal(recentAdvances(list('abcde'), list('xbcde')), false);
+    assert.equal(recentAdvances(list('abcde'), list('xabcd')), true);
+    assert.equal(recentAdvances(list('abcde'), list('vwxyz')), true);
+});
+
+test('createViewer: a newer version carrying an older full list is stale', () => {
+    const v = createViewer();
+    const snap = (version, recent) => ({ version, counters: ['A-001'], recent });
+    v.receive(snap(1, list('fedcb')));
+    assert.equal(v.receive(snap(2, list('edcba'))).stale, true);
 });

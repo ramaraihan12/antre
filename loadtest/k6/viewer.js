@@ -15,8 +15,10 @@ const recentOf = (snapshot) => snapshot.recent.map((r) => (typeof r === 'string'
  * Whether the recent-calls list moved forward. Judged by position, not by value, because the same
  * entry can appear twice (a ticket recalled twice at one counter). A correct next list is j new
  * entries at the head followed by previous[0..k) in the same positions. k may be shorter than the
- * whole previous list only when next is full, because then the tail fell off. With nothing in
- * common (k = 0) that again needs a full list: at least `capacity` calls landed in between.
+ * whole previous list only when next is full, because then the tail fell off. k = 0 (nothing kept
+ * by position) is not free: it only counts when next is full and shares no entry with previous,
+ * meaning at least `capacity` calls landed in between. Otherwise an older or reordered full list
+ * would pass as an advance.
  */
 export function recentAdvances(previous, next, capacity = 5) {
     if (previous.length === 0) return true;
@@ -24,6 +26,7 @@ export function recentAdvances(previous, next, capacity = 5) {
         const k = next.length - head;
         if (k > previous.length) continue;
         if (k < previous.length && next.length < capacity) continue;
+        if (k === 0 && next.some((v) => previous.includes(v))) continue;
         let same = true;
         for (let i = 0; i < k && same; i++) same = next[head + i] === previous[i];
         if (same) return true;
